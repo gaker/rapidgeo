@@ -68,6 +68,7 @@ jobs:
         else
           pip install maturin[patchelf]
         fi
+      shell: bash
     
     - name: Create virtual environment
       run: python -m venv .venv
