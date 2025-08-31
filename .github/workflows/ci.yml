@@ -68,36 +68,73 @@ jobs:
       uses: dtolnay/rust-toolchain@stable
     
     - name: Install maturin
-      run: pip install maturin[patchelf]
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          pip install maturin
+        else
+          pip install maturin[patchelf]
+        fi
     
     - name: Create virtual environment
       run: python -m venv .venv
+      shell: bash
     
     - name: Build and install rapidgeo (base)
       run: |
-        source .venv/bin/activate
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
         cd rapidgeo-py
+        if [ "${{ runner.os }}" = "macOS" ] && [ "$(uname -m)" = "arm64" ]; then
+          export MACOSX_DEPLOYMENT_TARGET=11.0
+        fi
         maturin develop
+      shell: bash
     
     - name: Test rapidgeo base package
       run: |
-        source .venv/bin/activate
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
         cd rapidgeo-py
         python -c "from rapidgeo.distance import LngLat; print('Base package works')"
+      shell: bash
     
     - name: Install numpy
       run: |
-        source .venv/bin/activate
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
         pip install numpy
+      shell: bash
     
     - name: Build and install rapidgeo with numpy
       run: |
-        source .venv/bin/activate
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
         cd rapidgeo-py
+        if [ "${{ runner.os }}" = "macOS" ] && [ "$(uname -m)" = "arm64" ]; then
+          export MACOSX_DEPLOYMENT_TARGET=11.0
+        fi
         maturin develop --features numpy
+      shell: bash
     
     - name: Test rapidgeo with numpy
       run: |
-        source .venv/bin/activate
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
         cd rapidgeo-py
         python -c "import rapidgeo; import numpy; print('Numpy integration works')"
+      shell: bash
