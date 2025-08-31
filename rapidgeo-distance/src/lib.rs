@@ -34,7 +34,7 @@ pub mod batch;
 /// # Examples
 ///
 /// ```
-/// use map_distance::LngLat;
+/// use rapidgeo_distance::LngLat;
 ///
 /// // San Francisco coordinates (lng, lat order)
 /// let sf = LngLat::new_deg(-122.4194, 37.7749);
@@ -64,7 +64,7 @@ impl LngLat {
     /// # Examples
     ///
     /// ```
-    /// use map_distance::LngLat;
+    /// use rapidgeo_distance::LngLat;
     ///
     /// let nyc = LngLat::new_deg(-74.0060, 40.7128);
     /// ```
@@ -84,7 +84,7 @@ impl LngLat {
     /// # Examples
     ///
     /// ```
-    /// use map_distance::LngLat;
+    /// use rapidgeo_distance::LngLat;
     ///
     /// let coord = LngLat::new_rad(-1.2916484, 0.7084);
     /// assert!((coord.lng_deg - (-74.0060)).abs() < 0.001);
@@ -104,7 +104,7 @@ impl LngLat {
     /// # Examples
     ///
     /// ```
-    /// use map_distance::LngLat;
+    /// use rapidgeo_distance::LngLat;
     ///
     /// let sf = LngLat::new_deg(-122.4194, 37.7749);
     /// let (lng_rad, lat_rad) = sf.to_radians();
@@ -143,5 +143,23 @@ mod tests {
         let coord3 = LngLat::from((-74.0060, 40.7128));
         assert_eq!(coord3.lng_deg, -74.0060);
         assert_eq!(coord3.lat_deg, 40.7128);
+    }
+
+    #[test]
+    fn test_new_rad() {
+        let lng_rad = -2.1364;
+        let lat_rad = 0.6588;
+
+        let coord = LngLat::new_rad(lng_rad, lat_rad);
+
+        let expected_lng_deg = lng_rad.to_degrees();
+        let expected_lat_deg = lat_rad.to_degrees();
+
+        assert!((coord.lng_deg - expected_lng_deg).abs() < 1e-10);
+        assert!((coord.lat_deg - expected_lat_deg).abs() < 1e-10);
+
+        let (back_lng_rad, back_lat_rad) = coord.to_radians();
+        assert!((back_lng_rad - lng_rad).abs() < 1e-15);
+        assert!((back_lat_rad - lat_rad).abs() < 1e-15);
     }
 }

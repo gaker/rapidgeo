@@ -17,14 +17,15 @@ crate-type = ["cdylib"]
 [features]
 default = ["batch"]
 vincenty = []
-batch = ["rayon", "map-distance/batch"]
+batch = ["rayon", "rapidgeo-distance/batch"]
 numpy = ["dep:numpy"]
 
 [dependencies]
 pyo3 = { version = "0.26", features = ["extension-module"] }
 numpy = { version = "0.26", optional = true }
 rayon = { version = "1.11", optional = true }
-map-distance = { path = "../map-distance", features = ["batch"] }
+rapidgeo-distance = { path = "../rapidgeo-distance", features = ["batch"] }
+rapidgeo-simplify = { path = "../rapidgeo-simplify", features = ["batch"] }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }

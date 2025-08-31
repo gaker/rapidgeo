@@ -24,7 +24,7 @@
 //! # Examples
 //!
 //! ```no_run
-//! use map_distance::{LngLat, batch::*};
+//! use rapidgeo_distance::{LngLat, batch::*};
 //!
 //! let points = vec![
 //!     LngLat::new_deg(-122.4194, 37.7749), // San Francisco  
@@ -65,7 +65,7 @@ use rayon::prelude::*;
 /// # Examples
 ///
 /// ```
-/// use map_distance::{LngLat, batch::pairwise_haversine};
+/// use rapidgeo_distance::{LngLat, batch::pairwise_haversine};
 ///
 /// let path = [
 ///     LngLat::new_deg(0.0, 0.0),
@@ -99,7 +99,7 @@ pub fn pairwise_haversine(pts: &[LngLat]) -> impl Iterator<Item = f64> + '_ {
 /// # Examples
 ///
 /// ```
-/// use map_distance::{LngLat, batch::path_length_haversine};
+/// use rapidgeo_distance::{LngLat, batch::path_length_haversine};
 ///
 /// let path = [
 ///     LngLat::new_deg(0.0, 0.0),
@@ -133,7 +133,7 @@ pub fn path_length_haversine(pts: &[LngLat]) -> f64 {
 /// ```no_run
 /// # #[cfg(feature = "batch")]
 /// # {
-/// use map_distance::{LngLat, batch::pairwise_haversine_par};
+/// use rapidgeo_distance::{LngLat, batch::pairwise_haversine_par};
 ///
 /// let path: Vec<LngLat> = (0..10000)
 ///     .map(|i| LngLat::new_deg(i as f64 * 0.001, 0.0))

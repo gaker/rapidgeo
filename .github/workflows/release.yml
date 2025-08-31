@@ -26,10 +26,10 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
-    - name: Publish map-distance to crates.io
+    - name: Publish rapidgeo-distance to crates.io
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      run: cargo publish -p map-distance
+      run: cargo publish -p rapidgeo-distance
 
   build-wheels:
     name: Build wheels on ${{ matrix.os }}

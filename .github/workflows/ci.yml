@@ -39,8 +39,11 @@ jobs:
     - name: Run clippy
       run: cargo clippy --workspace --all-targets -- -D warnings
     
-    - name: Test map-distance
-      run: cargo test -p map-distance --all-targets --all-features
+    - name: Test rapidgeo-distance
+      run: cargo test -p rapidgeo-distance --all-targets --all-features
+    
+    - name: Test rapidgeo-simplify
+      run: cargo test -p rapidgeo-simplify --all-targets --all-features
 
   test-python:
     name: Test Python (${{ matrix.python-version }}, ${{ matrix.os }})
@@ -96,7 +99,7 @@ jobs:
           source .venv/bin/activate
         fi
         cd rapidgeo-py
-        python -c "from rapidgeo.distance import LngLat; print('Base package works')"
+        python -c "from rapidgeo.distance import LngLat; from rapidgeo.simplify import douglas_peucker; print('Base package with simplify works')"
       shell: bash
     
     - name: Install numpy
@@ -132,4 +135,36 @@ jobs:
         fi
         cd rapidgeo-py
         python -c "import rapidgeo; import numpy; print('Numpy integration works')"
+      shell: bash
+    
+    - name: Install pytest
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          source .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
+        pip install pytest pytest-cov
+      shell: bash
+    
+    - name: Run pytest
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          source .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
+        cd rapidgeo-py
+        python -m pytest tests/ -v --cov=rapidgeo --cov-report=term-missing
+      shell: bash
+    
+    - name: Run integration tests
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          source .venv/Scripts/activate
+        else
+          source .venv/bin/activate
+        fi
+        cd rapidgeo-py
+        python tests/test_rapidgeo.py
       shell: bash

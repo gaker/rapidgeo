@@ -1,0 +1,24 @@
+[package]
+name = "rapidgeo-simplify"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["gaker"]
+homepage = "https://github.com/gaker/rapidgo"
+repository = "https://github.com/gaker/rapidgo"
+description = "Douglas-Peucker polyline simplification with pluggable distance backends"
+
+[features]
+default = []
+batch = ["rayon"]
+
+[dependencies]
+rapidgeo-distance = { path = "../rapidgeo-distance" }
+rayon = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["html_reports"] }
+
+[[bench]]
+name = "simplify_benchmarks"
+harness = false

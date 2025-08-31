@@ -3,8 +3,10 @@ use pyo3::prelude::*;
 mod distance;
 #[cfg(feature = "numpy")]
 mod numpy_batch;
+mod simplify;
 
 use distance::{create_module as create_distance_module, LngLat};
+use simplify::create_module as create_simplify_module;
 
 #[pymodule]
 fn _rapidgeo(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -15,6 +17,7 @@ fn _rapidgeo(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // Add submodules
     m.add_submodule(&create_distance_module(py)?)?;
+    m.add_submodule(&create_simplify_module(py)?)?;
 
     Ok(())
 }

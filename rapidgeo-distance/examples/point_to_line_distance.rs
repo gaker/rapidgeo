@@ -1,4 +1,4 @@
-use map_distance::{
+use rapidgeo_distance::{
     euclid::{point_to_segment, point_to_segment_squared},
     geodesic::{great_circle_point_to_seg, point_to_segment_enu_m},
     LngLat,

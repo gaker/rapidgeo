@@ -1,8 +1,8 @@
 #![allow(non_local_definitions)]
 
-use map_distance::{geodesic, LngLat as CoreLngLat};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
+use rapidgeo_distance::{geodesic, LngLat as CoreLngLat};
 
 #[pyclass]
 #[derive(Clone, Copy)]
@@ -77,22 +77,25 @@ pub mod euclid_mod {
 
     #[pyfunction]
     pub fn euclid(a: LngLat, b: LngLat) -> f64 {
-        map_distance::euclid::distance_euclid(a.into(), b.into())
+        rapidgeo_distance::euclid::distance_euclid(a.into(), b.into())
     }
 
     #[pyfunction]
     pub fn squared(a: LngLat, b: LngLat) -> f64 {
-        map_distance::euclid::distance_squared(a.into(), b.into())
+        rapidgeo_distance::euclid::distance_squared(a.into(), b.into())
     }
 
     #[pyfunction]
     pub fn point_to_segment(point: LngLat, seg_start: LngLat, seg_end: LngLat) -> f64 {
-        map_distance::euclid::point_to_segment(point.into(), (seg_start.into(), seg_end.into()))
+        rapidgeo_distance::euclid::point_to_segment(
+            point.into(),
+            (seg_start.into(), seg_end.into()),
+        )
     }
 
     #[pyfunction]
     pub fn point_to_segment_squared(point: LngLat, seg_start: LngLat, seg_end: LngLat) -> f64 {
-        map_distance::euclid::point_to_segment_squared(
+        rapidgeo_distance::euclid::point_to_segment_squared(
             point.into(),
             (seg_start.into(), seg_end.into()),
         )
@@ -124,7 +127,7 @@ pub mod batch_mod {
         Ok(py.detach(move || {
             core_pts
                 .windows(2)
-                .map(|pair| map_distance::geodesic::haversine(pair[0], pair[1]))
+                .map(|pair| rapidgeo_distance::geodesic::haversine(pair[0], pair[1]))
                 .collect()
         }))
     }
@@ -142,7 +145,7 @@ pub mod batch_mod {
         Ok(py.detach(move || {
             core_pts
                 .windows(2)
-                .map(|pair| map_distance::geodesic::haversine(pair[0], pair[1]))
+                .map(|pair| rapidgeo_distance::geodesic::haversine(pair[0], pair[1]))
                 .sum()
         }))
     }
@@ -161,7 +164,7 @@ pub mod batch_mod {
         py.detach(move || -> PyResult<f64> {
             let mut total = 0.0;
             for pair in core_pts.windows(2) {
-                match map_distance::geodesic::vincenty_distance_m(pair[0], pair[1]) {
+                match rapidgeo_distance::geodesic::vincenty_distance_m(pair[0], pair[1]) {
                     Ok(distance) => total += distance,
                     Err(_) => {
                         return Err(pyo3::exceptions::PyValueError::new_err(

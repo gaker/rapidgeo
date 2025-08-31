@@ -1,4 +1,4 @@
-use map_distance::{geodesic::haversine, LngLat};
+use rapidgeo_distance::{geodesic::haversine, LngLat};
 
 fn main() {
     // testing some city distances

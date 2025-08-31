@@ -8,7 +8,7 @@ Fast geographic and planar distance calculations for Rust and Python.
 
 ## Components
 
-### 🦀 map-distance (Rust)
+### 🦀 rapidgeo-distance (Rust)
 
 Core Rust library for geographic distance calculations.
 
@@ -17,7 +17,7 @@ Core Rust library for geographic distance calculations.
 - **Euclidean**: Fast planar distance calculations
 - **Batch operations** with optional parallelization
 
-[**📖 Documentation**](https://docs.rs/map-distance)
+[**📖 Documentation**](https://docs.rs/rapidgeo-distance)
 
 ### 🐍 rapidgeo (Python)
 

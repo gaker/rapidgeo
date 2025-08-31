@@ -1,7 +1,7 @@
-# map-distance
+# rapidgeo-distance
 
-[![Crates.io](https://img.shields.io/crates/v/map-distance.svg)](https://crates.io/crates/map-distance)
-[![docs.rs](https://docs.rs/map-distance/badge.svg)](https://docs.rs/map-distance)
+[![Crates.io](https://img.shields.io/crates/v/rapidgeo-distance.svg)](https://crates.io/crates/rapidgeo-distance)
+[![docs.rs](https://docs.rs/rapidgeo-distance/badge.svg)](https://docs.rs/rapidgeo-distance)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
 Geographic and planar distance calculations.
@@ -12,16 +12,16 @@ All coordinates use **longitude, latitude** ordering (lng, lat).
 
 ```toml
 [dependencies]
-map-distance = "0.1"
+rapidgeo-distance = "0.1"
 
 # Or with optional features
-map-distance = { version = "0.1", features = ["batch", "vincenty"] }
+rapidgeo-distance = { version = "0.1", features = ["batch", "vincenty"] }
 ```
 
 ## Quick Start
 
 ```rust
-use map_distance::{LngLat, geodesic, euclid};
+use rapidgeo_distance::{LngLat, geodesic, euclid};
 
 let sf = LngLat::new_deg(-122.4194, 37.7749);   // San Francisco
 let nyc = LngLat::new_deg(-74.0060, 40.7128);   // New York City
@@ -62,7 +62,7 @@ let (lng_rad, lat_rad) = point.to_radians();
 ### Geodesic Distances (Earth-Aware)
 
 ```rust
-use map_distance::geodesic::{haversine, vincenty_distance_m, VincentyError};
+use rapidgeo_distance::geodesic::{haversine, vincenty_distance_m, VincentyError};
 
 // Haversine: Fast, decent accuracy for distances <1000km
 let distance_m = haversine(point1, point2);
@@ -83,7 +83,7 @@ match vincenty_distance_m(point1, point2) {
 ### Euclidean Distances (Flat Plane)
 
 ```rust
-use map_distance::euclid::{distance_euclid, distance_squared, point_to_segment};
+use rapidgeo_distance::euclid::{distance_euclid, distance_squared, point_to_segment};
 
 // Basic distance in degrees (not meters)
 let dist_deg = distance_euclid(point1, point2);
@@ -99,7 +99,7 @@ let distance = point_to_segment(test_point, segment);
 ### Point-to-Segment Distances
 
 ```rust
-use map_distance::geodesic::{point_to_segment_enu_m, great_circle_point_to_seg};
+use rapidgeo_distance::geodesic::{point_to_segment_enu_m, great_circle_point_to_seg};
 
 let segment = (start_point, end_point);
 
@@ -113,7 +113,7 @@ let distance = great_circle_point_to_seg(point, segment);
 ### Batch Operations
 
 ```rust
-use map_distance::batch::{
+use rapidgeo_distance::batch::{
     pairwise_haversine, path_length_haversine,
     pairwise_haversine_into, distances_to_point_into
 };
@@ -135,7 +135,7 @@ pairwise_haversine_into(&path, &mut buffer);
 
 ```rust
 #[cfg(feature = "batch")]
-use map_distance::batch::{
+use rapidgeo_distance::batch::{
     pairwise_haversine_par, path_length_haversine_par,
     distances_to_point_par
 };

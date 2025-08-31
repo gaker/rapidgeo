@@ -1,6 +1,6 @@
-use map_distance::{geodesic, LngLat as CoreLngLat};
 use numpy::{PyArray1, PyReadonlyArray1};
 use pyo3::prelude::*;
+use rapidgeo_distance::{geodesic, LngLat as CoreLngLat};
 use rayon::prelude::*;
 
 #[pyfunction]

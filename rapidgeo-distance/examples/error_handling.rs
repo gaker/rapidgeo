@@ -1,4 +1,4 @@
-use map_distance::{
+use rapidgeo_distance::{
     geodesic::{haversine, vincenty_distance_m, VincentyError},
     LngLat,
 };

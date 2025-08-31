@@ -1,8 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use map_distance::{euclid, geodesic, LngLat};
+use rapidgeo_distance::{euclid, geodesic, LngLat};
 
 #[cfg(feature = "batch")]
-use map_distance::batch;
+use rapidgeo_distance::batch;
 
 // ---------- helpers ----------
 fn generate_test_points(n: usize) -> Vec<LngLat> {

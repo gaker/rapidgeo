@@ -1,5 +1,5 @@
 [package]
-name = "map-distance"
+name = "rapidgeo-distance"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +9,7 @@ repository.workspace = true
 description = "Fast and accurate geographic distance calculations with geodesic, haversine, and euclidean algorithms"
 keywords = ["distance", "geodesic", "haversine", "vincenty", "geometry"]
 categories = ["science::geo", "algorithms"]
-documentation = "https://docs.rs/map-distance"
+documentation = "https://docs.rs/rapidgeo-distance"
 readme = "README.md"
 
 [features]

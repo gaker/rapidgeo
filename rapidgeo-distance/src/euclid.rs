@@ -45,7 +45,7 @@ use crate::LngLat;
 /// # Examples
 ///
 /// ```
-/// use map_distance::{LngLat, euclid::distance_euclid};
+/// use rapidgeo_distance::{LngLat, euclid::distance_euclid};
 ///
 /// let p1 = LngLat::new_deg(0.0, 0.0);
 /// let p2 = LngLat::new_deg(3.0, 4.0);
@@ -81,7 +81,7 @@ pub fn distance_euclid(p1: LngLat, p2: LngLat) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use map_distance::{LngLat, euclid::{distance_euclid, distance_squared}};
+/// use rapidgeo_distance::{LngLat, euclid::{distance_euclid, distance_squared}};
 ///
 /// let p1 = LngLat::new_deg(0.0, 0.0);
 /// let p2 = LngLat::new_deg(3.0, 4.0);
@@ -127,7 +127,7 @@ pub fn distance_squared(p1: LngLat, p2: LngLat) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use map_distance::{LngLat, euclid::point_to_segment};
+/// use rapidgeo_distance::{LngLat, euclid::point_to_segment};
 ///
 /// // Horizontal segment from (0,0) to (4,0)
 /// let segment = (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(4.0, 0.0));
@@ -180,7 +180,7 @@ pub fn point_to_segment(point: LngLat, segment: (LngLat, LngLat)) -> f64 {
 /// # Examples
 ///
 /// ```
-/// use map_distance::{LngLat, euclid::{point_to_segment, point_to_segment_squared}};
+/// use rapidgeo_distance::{LngLat, euclid::{point_to_segment, point_to_segment_squared}};
 ///
 /// let segment = (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(4.0, 0.0));
 /// let point = LngLat::new_deg(2.0, 3.0);
@@ -227,7 +227,7 @@ pub fn point_to_segment_squared(point: LngLat, segment: (LngLat, LngLat)) -> f64
 /// # Examples
 ///
 /// ```
-/// use map_distance::euclid::distance3;
+/// use rapidgeo_distance::euclid::distance3;
 ///
 /// let p1 = (0.0, 0.0, 0.0);
 /// let p2 = (3.0, 4.0, 0.0);
