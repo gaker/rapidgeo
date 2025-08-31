@@ -1,0 +1,200 @@
+# map-distance
+
+[![Crates.io](https://img.shields.io/crates/v/map-distance.svg)](https://crates.io/crates/map-distance)
+[![docs.rs](https://docs.rs/map-distance/badge.svg)](https://docs.rs/map-distance)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+
+Geographic and planar distance calculations.
+
+All coordinates use **longitude, latitude** ordering (lng, lat).
+
+## Installation
+
+```toml
+[dependencies]
+map-distance = "0.1"
+
+# Or with optional features
+map-distance = { version = "0.1", features = ["batch", "vincenty"] }
+```
+
+## Quick Start
+
+```rust
+use map_distance::{LngLat, geodesic, euclid};
+
+let sf = LngLat::new_deg(-122.4194, 37.7749);   // San Francisco
+let nyc = LngLat::new_deg(-74.0060, 40.7128);   // New York City
+
+// Haversine: ±0.5% accuracy for distances <1000km
+let distance = geodesic::haversine(sf, nyc);
+println!("Distance: {:.1} km", distance / 1000.0);
+
+// Vincenty: ±1mm accuracy globally (requires "vincenty" feature)
+let precise = geodesic::vincenty_distance_m(sf, nyc)?;
+println!("Precise: {:.3} km", precise / 1000.0);
+
+// Euclidean: Fast but inaccurate for large distances
+let euclidean = euclid::distance_euclid(sf, nyc);
+println!("Euclidean: {:.6}°", euclidean);
+```
+
+## What This Crate Does
+
+This crate calculates distances between geographic coordinates using three approaches:
+
+1. **Geodesic algorithms** - Account for Earth's shape (haversine, Vincenty)
+2. **Euclidean distance** - Treats coordinates as flat plane points  
+3. **Batch operations** - Process many points efficiently with optional parallelization
+
+All geodesic calculations use the WGS84 ellipsoid.
+
+## API Overview
+
+### Core Types
+
+```rust
+// All functions work with LngLat coordinates
+let point = LngLat::new_deg(longitude, latitude);
+let (lng_rad, lat_rad) = point.to_radians();
+```
+
+### Geodesic Distances (Earth-Aware)
+
+```rust
+use map_distance::geodesic::{haversine, vincenty_distance_m, VincentyError};
+
+// Haversine: Fast, ±0.5% accuracy for distances <1000km
+let distance_m = haversine(point1, point2);
+
+// Vincenty: Slow, ±1mm accuracy, may fail for antipodal points
+match vincenty_distance_m(point1, point2) {
+    Ok(distance) => println!("{:.3} m", distance),
+    Err(VincentyError::DidNotConverge) => {
+        // Use haversine as fallback
+        let fallback = haversine(point1, point2);
+    }
+    Err(VincentyError::Domain) => {
+        // Invalid coordinates (NaN/infinite)
+    }
+}
+```
+
+### Euclidean Distances (Flat Plane)
+
+```rust
+use map_distance::euclid::{distance_euclid, distance_squared, point_to_segment};
+
+// Basic distance in degrees (not meters)
+let dist_deg = distance_euclid(point1, point2);
+
+// Squared distance (avoids sqrt for performance)
+let dist_sq = distance_squared(point1, point2);
+
+// Point to line segment distance
+let segment = (point1, point2);
+let distance = point_to_segment(test_point, segment);
+```
+
+### Point-to-Segment Distances
+
+```rust
+use map_distance::geodesic::{point_to_segment_enu_m, great_circle_point_to_seg};
+
+let segment = (start_point, end_point);
+
+// ENU projection (good for small areas)
+let distance = point_to_segment_enu_m(point, segment);
+
+// Great circle method (accurate but slower)
+let distance = great_circle_point_to_seg(point, segment);
+```
+
+### Batch Operations
+
+```rust
+use map_distance::batch::{
+    pairwise_haversine, path_length_haversine,
+    pairwise_haversine_into, distances_to_point_into
+};
+
+let path = vec![point1, point2, point3];
+
+// Process consecutive pairs
+let distances: Vec<f64> = pairwise_haversine(&path).collect();
+
+// Total path length
+let total = path_length_haversine(&path);
+
+// Write to pre-allocated buffer (no allocation)
+let mut buffer = vec![0.0; path.len() - 1];
+pairwise_haversine_into(&path, &mut buffer);
+```
+
+### Parallel Processing (requires "batch" feature)
+
+```rust
+#[cfg(feature = "batch")]
+use map_distance::batch::{
+    pairwise_haversine_par, path_length_haversine_par,
+    distances_to_point_par
+};
+
+let large_dataset = load_many_points();
+
+// Parallel processing (beneficial for >1000 points)
+let distances = pairwise_haversine_par(&large_dataset);
+let total = path_length_haversine_par(&large_dataset);
+```
+
+## Algorithm Selection
+
+| Algorithm | Speed | Accuracy | Best For |
+|-----------|-------|----------|----------|
+| Haversine | 46ns | ±0.5% | Distances <1000km |
+| Vincenty | 271ns | ±1mm | High precision, any distance |
+| Euclidean | 1ns | Poor at scale | Small areas, relative comparisons |
+
+### Accuracy Details
+
+**Haversine**: Uses spherical approximation with ellipsoidal correction. Achieves ±0.5% accuracy for distances under 1000km. Uses optimized Earth radius (6,371,008.8m) and applies flattening correction.
+
+**Vincenty**: Implements Vincenty's inverse formula on WGS84 ellipsoid. Achieves ±1mm accuracy globally. May fail to converge for nearly antipodal points (opposite sides of Earth).
+
+**Euclidean**: Simple Pythagorean distance in degree space. Ignores Earth curvature. Error increases with distance and latitude.
+
+## Features
+
+- **Default**: Haversine and Euclidean functions
+- **`vincenty`**: Enables high-precision Vincenty calculations
+- **`batch`**: Enables Rayon-based parallel processing
+
+## Performance Notes
+
+**Serial vs Parallel**: Parallel functions are faster for large datasets (>1000 points) but have overhead. Use serial for small datasets.
+
+**Memory Allocation**: Functions ending in `_into` write to pre-allocated buffers, avoiding allocation overhead.
+
+**Benchmarks**: On Intel i9-10900F:
+- Euclidean: ~1ns per calculation  
+- Haversine: ~46ns per calculation
+- Vincenty: ~271ns per calculation
+- Pre-allocated buffers: ~60% faster than allocating
+
+## Coordinate System
+
+All coordinates use **longitude, latitude** ordering:
+- Longitude: -180.0 to +180.0° (West to East)
+- Latitude: -90.0 to +90.0° (South to North)
+
+```rust
+let coord = LngLat::new_deg(lng, lat);  // Note: lng first
+```
+
+## Limitations
+
+- Vincenty may fail for nearly antipodal points
+- Euclidean accuracy degrades significantly with distance and latitude
+- Parallel functions require the `batch` feature
+- All geodesic calculations assume WGS84 ellipsoid
+- Point-to-segment functions assume segments shorter than hemisphere

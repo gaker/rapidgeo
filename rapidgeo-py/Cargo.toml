@@ -1,0 +1,31 @@
+[package]
+name = "rapidgeo-py"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Fast geographic and planar distance calculations with Python bindings"
+homepage = "https://github.com/gaker/rapidgo"
+repository = "https://github.com/gaker/rapidgo"
+keywords = ["distance", "geodesic", "haversine", "vincenty", "geometry"]
+categories = ["science::geo", "algorithms"]
+publish = false  # This is for PyPI, not crates.io
+
+[lib]
+name = "rapidgeo"
+crate-type = ["cdylib"]
+
+[features]
+default = ["batch"]
+vincenty = []
+batch = ["rayon", "map-distance/batch"]
+numpy = ["dep:numpy"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+numpy = { version = "0.20", optional = true }
+rayon = { version = "1.8", optional = true }
+map-distance = { path = "../map-distance", features = ["batch"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+

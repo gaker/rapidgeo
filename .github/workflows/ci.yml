@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-rust:
+    name: Test Rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    
+    - name: Cache Cargo
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+    
+    - name: Run clippy
+      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+    
+    - name: Test map-distance
+      run: cargo test -p map-distance --all-targets --all-features
+    
+    - name: Build rapidgeo-py
+      run: cargo build -p rapidgeo-py
+    
+    - name: Build rapidgeo-py with numpy
+      run: cargo build -p rapidgeo-py --features numpy
+
+  test-python:
+    name: Test Python (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    
+    - name: Install maturin
+      run: pip install maturin[patchelf]
+    
+    - name: Build and install rapidgeo (base)
+      run: |
+        cd rapidgeo-py
+        maturin develop
+    
+    - name: Test rapidgeo base package
+      run: |
+        cd rapidgeo-py
+        python -c "from rapidgeo.distance import LngLat; print('Base package works')"
+    
+    - name: Install numpy
+      run: pip install numpy
+    
+    - name: Build and install rapidgeo with numpy
+      run: |
+        cd rapidgeo-py
+        maturin develop --features numpy
+    
+    - name: Test rapidgeo with numpy
+      run: |
+        cd rapidgeo-py
+        python -c "import rapidgeo; import numpy; print('Numpy integration works')"

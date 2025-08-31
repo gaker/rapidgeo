@@ -1,0 +1,42 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "rapidgeo"
+authors = [{name = "gaker"}]
+license = {text = "MIT OR Apache-2.0"}
+description = "Fast geographic and planar distance calculations with Python bindings"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["distance", "geodesic", "haversine", "vincenty", "geometry", "gis"]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/gaker/rapidgo"
+Repository = "https://github.com/gaker/rapidgo"
+Documentation = "https://github.com/gaker/rapidgo"
+Issues = "https://github.com/gaker/rapidgo/issues"
+
+[project.optional-dependencies]
+numpy = ["numpy>=1.19.0"]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+python-source = "python"
+module-name = "rapidgeo._rapidgeo"

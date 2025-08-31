@@ -1,0 +1,8 @@
+[default]
+workspace = true
+exclude = ["rapidgeo-py"] 
+fail-under = 80.0
+all-features = true
+[report]
+html = true
+lcov = true
