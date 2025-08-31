@@ -82,13 +82,14 @@ jobs:
     - name: Build and install rapidgeo (base)
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          .venv/Scripts/activate
+          source .venv/Scripts/activate
         else
           source .venv/bin/activate
         fi
         cd rapidgeo-py
-        if [ "${{ runner.os }}" = "macOS" ] && [ "$(uname -m)" = "arm64" ]; then
+        if [ "${{ runner.os }}" = "macOS" ]; then
           export MACOSX_DEPLOYMENT_TARGET=11.0
+          export PYO3_CROSS_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
         fi
         maturin develop
       shell: bash
@@ -96,7 +97,7 @@ jobs:
     - name: Test rapidgeo base package
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          .venv/Scripts/activate
+          source .venv/Scripts/activate
         else
           source .venv/bin/activate
         fi
@@ -107,7 +108,7 @@ jobs:
     - name: Install numpy
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          .venv/Scripts/activate
+          source .venv/Scripts/activate
         else
           source .venv/bin/activate
         fi
@@ -117,13 +118,14 @@ jobs:
     - name: Build and install rapidgeo with numpy
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          .venv/Scripts/activate
+          source .venv/Scripts/activate
         else
           source .venv/bin/activate
         fi
         cd rapidgeo-py
-        if [ "${{ runner.os }}" = "macOS" ] && [ "$(uname -m)" = "arm64" ]; then
+        if [ "${{ runner.os }}" = "macOS" ]; then
           export MACOSX_DEPLOYMENT_TARGET=11.0
+          export PYO3_CROSS_LIB_DIR=$(python -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
         fi
         maturin develop --features numpy
       shell: bash
@@ -131,7 +133,7 @@ jobs:
     - name: Test rapidgeo with numpy
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          .venv/Scripts/activate
+          source .venv/Scripts/activate
         else
           source .venv/bin/activate
         fi
