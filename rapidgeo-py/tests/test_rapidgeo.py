@@ -112,21 +112,21 @@ def test_distance_smoke_test():
         vincenty_dist = vincenty_distance(sf, nyc)
         assert haversine_dist > 4_000_000  # ~4130 km
         assert vincenty_dist > 4_000_000
-        print("✓ Geodesic distances work")
+        print("Geodesic distances work")
         
         # Test Euclidean distances
         euclid_dist = euclid(sf, nyc)
         squared_dist = squared(sf, nyc)
         assert euclid_dist > 0
         assert squared_dist > 0
-        print("✓ Euclidean distances work")
+        print("Euclidean distances work")
         
         # Test point to segment
         seg_dist = point_to_segment(LngLat(-98.0, 39.0), sf, nyc)
         seg_dist_sq = point_to_segment_squared(LngLat(-98.0, 39.0), sf, nyc)
         assert seg_dist > 0
         assert seg_dist_sq > 0
-        print("✓ Point to segment works")
+        print("Point to segment works")
         
         # Test batch operations
         points = [sf, LngLat(-98.0, 39.0), nyc]
@@ -134,7 +134,7 @@ def test_distance_smoke_test():
         path_length = path_length_haversine(points)
         assert len(pairwise_dists) == 2
         assert path_length > 0
-        print("✓ Batch operations work")
+        print("Batch operations work")
         
         print("All distance functionality working!")
         
@@ -149,24 +149,22 @@ def test_simplify_smoke_test():
     try:
         from rapidgeo.simplify import douglas_peucker
         from rapidgeo.simplify.batch import simplify_multiple
-        print("✓ Imports successful")
+        print("Imports successful")
         
         # Basic functionality test
         points = [LngLat(-122.0, 37.0), LngLat(-121.0, 37.0)]
         simplified = douglas_peucker(points, tolerance_m=100.0)
         assert len(simplified) == 2
-        print("✓ Basic simplification works")
+        print("Basic simplification works")
         
         # Batch test
         polylines = [[LngLat(-122.0, 37.0), LngLat(-121.0, 37.0)]]
         batch_result = simplify_multiple(polylines, tolerance_m=100.0)
         assert len(batch_result) == 1
-        print("✓ Batch simplification works")
-        
-        print("All simplify functionality working!")
-        
+        print("Batch simplification works")
+                
     except Exception as e:
-        print(f"X Simplify smoke test failed: {e}")
+        print(f"Simplify smoke test failed: {e}")
         raise
 
 if __name__ == "__main__":
