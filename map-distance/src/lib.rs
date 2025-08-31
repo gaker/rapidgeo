@@ -133,13 +133,13 @@ mod tests {
     #[test]
     fn test_lnglat_conversions() {
         let coord = LngLat::new_deg(-122.4194, 37.7749);
-        
+
         let tuple: (f64, f64) = coord.into();
         assert_eq!(tuple, (-122.4194, 37.7749));
-        
+
         let coord2: LngLat = tuple.into();
         assert_eq!(coord2, coord);
-        
+
         let coord3 = LngLat::from((-74.0060, 40.7128));
         assert_eq!(coord3.lng_deg, -74.0060);
         assert_eq!(coord3.lat_deg, 40.7128);

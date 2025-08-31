@@ -64,10 +64,10 @@ let (lng_rad, lat_rad) = point.to_radians();
 ```rust
 use map_distance::geodesic::{haversine, vincenty_distance_m, VincentyError};
 
-// Haversine: Fast, ±0.5% accuracy for distances <1000km
+// Haversine: Fast, decent accuracy for distances <1000km
 let distance_m = haversine(point1, point2);
 
-// Vincenty: Slow, ±1mm accuracy, may fail for antipodal points
+// Vincenty: Slow, very accuracy, may fail for antipodal points
 match vincenty_distance_m(point1, point2) {
     Ok(distance) => println!("{:.3} m", distance),
     Err(VincentyError::DidNotConverge) => {
@@ -157,9 +157,9 @@ let total = path_length_haversine_par(&large_dataset);
 
 ### Accuracy Details
 
-**Haversine**: Uses spherical approximation with ellipsoidal correction. Achieves ±0.5% accuracy for distances under 1000km. Uses optimized Earth radius (6,371,008.8m) and applies flattening correction.
+**Haversine**: Uses spherical approximation with ellipsoidal correction. Good tradeoff for accuracy vs speed.
 
-**Vincenty**: Implements Vincenty's inverse formula on WGS84 ellipsoid. Achieves ±1mm accuracy globally. May fail to converge for nearly antipodal points (opposite sides of Earth).
+**Vincenty**: Implements Vincenty's inverse formula on WGS84 ellipsoid. It might fail to converge for nearly antipodal points, and is quite a bit slower.
 
 **Euclidean**: Simple Pythagorean distance in degree space. Ignores Earth curvature. Error increases with distance and latitude.
 

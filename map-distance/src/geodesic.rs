@@ -64,46 +64,46 @@ const F: f64 = 1.0 / 298.257_223_563;
 /// let nyc = LngLat::new_deg(-74.0060, 40.7128);
 /// let distance = haversine(sf, nyc);
 /// assert!((distance - 4135000.0).abs() < 10000.0); // ~4,135 km
-/// 
+///
 /// // Identical points return 0
 /// assert_eq!(haversine(sf, sf), 0.0);
 /// ```
 pub fn haversine(a: LngLat, b: LngLat) -> f64 {
     let (lng1_rad, lat1_rad) = a.to_radians();
     let (lng2_rad, lat2_rad) = b.to_radians();
-    
+
     let dlat = lat2_rad - lat1_rad;
     let mut dlng = lng2_rad - lng1_rad;
-    
+
     // Handle antimeridian crossing - take shorter path
     if dlng > std::f64::consts::PI {
         dlng -= 2.0 * std::f64::consts::PI;
     } else if dlng < -std::f64::consts::PI {
         dlng += 2.0 * std::f64::consts::PI;
     }
-    
+
     // Use the exact Haversine formula with highest numerical precision
     let half_dlat = dlat * 0.5;
     let half_dlng = dlng * 0.5;
     let sin_half_dlat = half_dlat.sin();
     let sin_half_dlng = half_dlng.sin();
-    
-    let h = sin_half_dlat * sin_half_dlat + 
-            lat1_rad.cos() * lat2_rad.cos() * sin_half_dlng * sin_half_dlng;
-    
+
+    let h = sin_half_dlat * sin_half_dlat
+        + lat1_rad.cos() * lat2_rad.cos() * sin_half_dlng * sin_half_dlng;
+
     // Use atan2 formulation for better numerical stability
     let central_angle = 2.0 * h.sqrt().atan2((1.0 - h).sqrt());
-    
+
     let spherical_distance = EARTH_RADIUS_M * central_angle;
-    
+
     // Apply ellipsoidal correction to achieve ±0.5% accuracy specification
     // This correction accounts for the Earth's flattening, particularly for meridional distances
     let avg_lat = (lat1_rad + lat2_rad) * 0.5;
     let bearing_factor = dlng.abs() / (dlat.abs() + dlng.abs() + 1e-12); // 0=meridional, 1=equatorial
-    
+
     // WGS84 ellipsoidal correction factor
     let flattening_correction = 1.0 - F * (1.0 - bearing_factor) * (avg_lat.cos().powi(2));
-    
+
     spherical_distance * flattening_correction
 }
 
@@ -111,7 +111,7 @@ pub fn haversine(a: LngLat, b: LngLat) -> f64 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VincentyError {
     /// The iterative algorithm failed to converge within the iteration limit.
-    /// 
+    ///
     /// This typically occurs for nearly antipodal points (opposite sides of Earth).
     /// Consider using [`haversine`] as a fallback for such cases.
     DidNotConverge,
@@ -142,7 +142,7 @@ pub enum VincentyError {
 ///
 /// let sf = LngLat::new_deg(-122.4194, 37.7749);
 /// let nyc = LngLat::new_deg(-74.0060, 40.7128);
-/// 
+///
 /// match vincenty_distance_m(sf, nyc) {
 ///     Ok(distance) => {
 ///         assert!(distance > 4_120_000.0 && distance < 4_170_000.0);
@@ -165,8 +165,10 @@ pub enum VincentyError {
 #[inline]
 pub fn vincenty_distance_m(a: LngLat, b: LngLat) -> Result<f64, VincentyError> {
     // Basic input sanity
-    if !a.lng_deg.is_finite() || !a.lat_deg.is_finite()
-        || !b.lng_deg.is_finite() || !b.lat_deg.is_finite()
+    if !a.lng_deg.is_finite()
+        || !a.lat_deg.is_finite()
+        || !b.lng_deg.is_finite()
+        || !b.lat_deg.is_finite()
     {
         return Err(VincentyError::Domain);
     }
@@ -184,7 +186,9 @@ pub fn vincenty_distance_m(a: LngLat, b: LngLat) -> Result<f64, VincentyError> {
     fn wrap_pi(x: f64) -> f64 {
         let two_pi = std::f64::consts::TAU; // 2π
         let mut y = (x + std::f64::consts::PI) % two_pi;
-        if y < 0.0 { y += two_pi; }
+        if y < 0.0 {
+            y += two_pi;
+        }
         y - std::f64::consts::PI
     }
 
@@ -229,8 +233,14 @@ pub fn vincenty_distance_m(a: LngLat, b: LngLat) -> Result<f64, VincentyError> {
         let c = (F / 16.0) * cos_sq_alpha * (4.0 + F * (4.0 - 3.0 * cos_sq_alpha));
 
         lambda_prev = lambda;
-        lambda = l0 + (1.0 - c) * F * sin_alpha
-            * (sigma + c * sin_sigma * (cos_2sigma_m + c * cos_sigma * (-1.0 + 2.0 * (cos_2sigma_m * cos_2sigma_m))));
+        lambda = l0
+            + (1.0 - c)
+                * F
+                * sin_alpha
+                * (sigma
+                    + c * sin_sigma
+                        * (cos_2sigma_m
+                            + c * cos_sigma * (-1.0 + 2.0 * (cos_2sigma_m * cos_2sigma_m))));
 
         if (lambda - lambda_prev).abs() < EPS {
             break (cos_sq_alpha, sin_sigma, cos_sigma, sigma, cos_2sigma_m);
@@ -253,29 +263,34 @@ pub fn vincenty_distance_m(a: LngLat, b: LngLat) -> Result<f64, VincentyError> {
     let cos_2sigma_m2 = cos_2sigma_m * cos_2sigma_m;
     let sin_sigma2 = sin_sigma * sin_sigma;
 
-    let delta_sigma = big_b * sin_sigma * (
-        cos_2sigma_m + (big_b / 4.0) * (
-            cos_sigma * (-1.0 + 2.0 * cos_2sigma_m2) - 
-            (big_b / 6.0) * cos_2sigma_m * (-3.0 + 4.0 * sin_sigma2) * (-3.0 + 4.0 * cos_2sigma_m2)
-        )
-    );
-    
+    let delta_sigma = big_b
+        * sin_sigma
+        * (cos_2sigma_m
+            + (big_b / 4.0)
+                * (cos_sigma * (-1.0 + 2.0 * cos_2sigma_m2)
+                    - (big_b / 6.0)
+                        * cos_2sigma_m
+                        * (-3.0 + 4.0 * sin_sigma2)
+                        * (-3.0 + 4.0 * cos_2sigma_m2)));
+
     Ok(B * big_a * (sigma - delta_sigma))
 }
 
+#[cfg(test)]
 fn initial_bearing_deg(from: LngLat, to: LngLat) -> f64 {
     let (lng1_rad, lat1_rad) = from.to_radians();
     let (lng2_rad, lat2_rad) = to.to_radians();
-    
+
     let dlng = lng2_rad - lng1_rad;
-    
+
     let y = dlng.sin() * lat2_rad.cos();
     let x = lat1_rad.cos() * lat2_rad.sin() - lat1_rad.sin() * lat2_rad.cos() * dlng.cos();
-    
+
     let bearing_rad = y.atan2(x);
     bearing_rad.to_degrees()
 }
 
+#[cfg(test)]
 fn normalize_bearing_deg(bearing: f64) -> f64 {
     let mut normalized = bearing % 360.0;
     if normalized < 0.0 {
@@ -286,92 +301,91 @@ fn normalize_bearing_deg(bearing: f64) -> f64 {
 
 pub fn point_to_segment_enu_m(point: LngLat, segment: (LngLat, LngLat)) -> f64 {
     let (seg_start, seg_end) = segment;
-    
+
     if seg_start.lng_deg == seg_end.lng_deg && seg_start.lat_deg == seg_end.lat_deg {
         return haversine(point, seg_start);
     }
-    
+
     let midpoint = LngLat::new_deg(
         (seg_start.lng_deg + seg_end.lng_deg) * 0.5,
-        (seg_start.lat_deg + seg_end.lat_deg) * 0.5
+        (seg_start.lat_deg + seg_end.lat_deg) * 0.5,
     );
-    
+
     fn to_enu_m(origin: LngLat, point: LngLat) -> (f64, f64) {
         let (origin_lng_rad, origin_lat_rad) = origin.to_radians();
         let (point_lng_rad, point_lat_rad) = point.to_radians();
-        
+
         let dlng = point_lng_rad - origin_lng_rad;
         let dlat = point_lat_rad - origin_lat_rad;
-        
+
         let cos_lat = origin_lat_rad.cos();
-        
+
         let east_m = EARTH_RADIUS_M * dlng * cos_lat;
         let north_m = EARTH_RADIUS_M * dlat;
-        
+
         (east_m, north_m)
     }
-    
+
     let (start_e, start_n) = to_enu_m(midpoint, seg_start);
     let (end_e, end_n) = to_enu_m(midpoint, seg_end);
     let (point_e, point_n) = to_enu_m(midpoint, point);
-    
+
     let dx = end_e - start_e;
     let dy = end_n - start_n;
-    
+
     let t = ((point_e - start_e) * dx + (point_n - start_n) * dy) / (dx * dx + dy * dy);
-    let t = t.max(0.0).min(1.0);
-    
+    let t = t.clamp(0.0, 1.0);
+
     let proj_e = start_e + t * dx;
     let proj_n = start_n + t * dy;
-    
+
     let de = point_e - proj_e;
     let dn = point_n - proj_n;
-    
+
     (de * de + dn * dn).sqrt()
 }
 
 pub fn great_circle_point_to_seg(point: LngLat, segment: (LngLat, LngLat)) -> f64 {
     let (seg_start, seg_end) = segment;
-    
+
     if seg_start.lng_deg == seg_end.lng_deg && seg_start.lat_deg == seg_end.lat_deg {
         return haversine(point, seg_start);
     }
-    
+
     let d_start = haversine(seg_start, point);
     let d_end = haversine(seg_end, point);
     let d_seg = haversine(seg_start, seg_end);
-    
+
     if d_seg < 1e-6 {
         return d_start;
     }
-    
+
     let a = d_start;
-    let b = d_seg;  
+    let b = d_seg;
     let c = d_end;
-    
+
     let s = (a + b + c) * 0.5;
     if s <= a || s <= b || s <= c {
         return d_start.min(d_end);
     }
-    
+
     let area = (s * (s - a) * (s - b) * (s - c)).sqrt();
     let cross_track_distance = (2.0 * area) / b;
-    
+
     // Check for numerical stability - avoid sqrt of negative number
     if a * a < cross_track_distance * cross_track_distance {
         return d_start.min(d_end);
     }
     let along_track_distance = (a * a - cross_track_distance * cross_track_distance).sqrt();
-    
+
     if along_track_distance > b {
         d_end
     } else if along_track_distance < 0.0 {
-        d_start  
+        d_start
     } else {
         cross_track_distance
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -379,13 +393,16 @@ mod tests {
 
     #[test]
     fn test_haversine() {
-        assert_eq!(haversine(LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.0, 0.0)), 0.0);
-        
+        assert_eq!(
+            haversine(LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.0, 0.0)),
+            0.0
+        );
+
         let sf = LngLat::new_deg(-122.4194, 37.7749);
         let nyc = LngLat::new_deg(-74.0060, 40.7128);
         let distance = haversine(sf, nyc);
         assert!((distance - 4135000.0).abs() < 10000.0);
-        
+
         let p1 = LngLat::new_deg(-122.0, 37.0);
         let p2 = LngLat::new_deg(-121.0, 37.0);
         assert_eq!(haversine(p1, p2), haversine(p2, p1));
@@ -396,7 +413,9 @@ mod tests {
         assert!(
             (a - b).abs() <= tol,
             "left={:.6} right={:.6} tol={}",
-            a, b, tol
+            a,
+            b,
+            tol
         );
     }
 
@@ -407,7 +426,12 @@ mod tests {
         assert!(
             diff <= abs + rel * scale,
             "left={:.12} right={:.12} |diff|={} > abs+rel*scale={} (abs={}, rel={})",
-            a, b, diff, abs + rel * scale, abs, rel
+            a,
+            b,
+            diff,
+            abs + rel * scale,
+            abs,
+            rel
         );
     }
 
@@ -459,12 +483,16 @@ mod tests {
     #[test]
     fn vincenty_real_world_sf_nyc() {
         // San Francisco ↔ New York City (WGS84, rough truth ~ 4_133–4_157 km depending on exact points)
-        let sf  = LngLat::new_deg(-122.4194, 37.7749);
-        let nyc = LngLat::new_deg(-74.0060,  40.7128);
+        let sf = LngLat::new_deg(-122.4194, 37.7749);
+        let nyc = LngLat::new_deg(-74.0060, 40.7128);
         let d_v = vincenty_distance_m(sf, nyc).unwrap();
 
         // Sanity band: 4_120–4_170 km
-        assert!(d_v > 4_120_000.0 && d_v < 4_170_000.0, "sf-nyc vincenty={}", d_v);
+        assert!(
+            d_v > 4_120_000.0 && d_v < 4_170_000.0,
+            "sf-nyc vincenty={}",
+            d_v
+        );
 
         // Compare to haversine (should be close; allow small % error)
         let d_h = haversine(sf, nyc);
@@ -475,8 +503,8 @@ mod tests {
     #[test]
     fn vincenty_triangle_inequality() {
         let a = LngLat::new_deg(-122.4194, 37.7749); // SF
-        let b = LngLat::new_deg(-73.9851,  40.7589); // Midtown Manhattan
-        let c = LngLat::new_deg(-74.0060,  40.7128); // Lower Manhattan
+        let b = LngLat::new_deg(-73.9851, 40.7589); // Midtown Manhattan
+        let c = LngLat::new_deg(-74.0060, 40.7128); // Lower Manhattan
 
         let ab = vincenty_distance_m(a, b).unwrap();
         let bc = vincenty_distance_m(b, c).unwrap();
@@ -489,12 +517,16 @@ mod tests {
     fn vincenty_near_antipodal_may_fail() {
         // Near-antipodal pairs are the known failure mode for Vincenty inverse.
         // Depending on implementation details it may fail to converge; allow either outcome.
-        let p1 = LngLat::new_deg(0.0,  0.0);
+        let p1 = LngLat::new_deg(0.0, 0.0);
         let p2 = LngLat::new_deg(180.0 - 1e-9, 0.0); // almost antipodal
         match vincenty_distance_m(p1, p2) {
             Ok(d) => {
                 // Should be roughly half the Earth's meridional circumference ~ 20,003 km
-                assert!(d > 19_000_000.0 && d < 21_000_000.0, "near-antipodal distance {}", d);
+                assert!(
+                    d > 19_000_000.0 && d < 21_000_000.0,
+                    "near-antipodal distance {}",
+                    d
+                );
             }
             Err(VincentyError::DidNotConverge) => {
                 // Acceptable outcome; caller can fall back to haversine.
@@ -506,45 +538,84 @@ mod tests {
     #[test]
     fn vincenty_domain_errors() {
         let valid = LngLat::new_deg(0.0, 0.0);
-        
+
         // Test NaN coordinates
         let nan_lng = LngLat::new_deg(f64::NAN, 0.0);
         let nan_lat = LngLat::new_deg(0.0, f64::NAN);
-        assert_eq!(vincenty_distance_m(nan_lng, valid), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(valid, nan_lng), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(nan_lat, valid), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(valid, nan_lat), Err(VincentyError::Domain));
-        
+        assert_eq!(
+            vincenty_distance_m(nan_lng, valid),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(valid, nan_lng),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(nan_lat, valid),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(valid, nan_lat),
+            Err(VincentyError::Domain)
+        );
+
         // Test infinite coordinates
         let inf_lng = LngLat::new_deg(f64::INFINITY, 0.0);
         let inf_lat = LngLat::new_deg(0.0, f64::INFINITY);
-        assert_eq!(vincenty_distance_m(inf_lng, valid), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(valid, inf_lng), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(inf_lat, valid), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(valid, inf_lat), Err(VincentyError::Domain));
-        
+        assert_eq!(
+            vincenty_distance_m(inf_lng, valid),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(valid, inf_lng),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(inf_lat, valid),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(valid, inf_lat),
+            Err(VincentyError::Domain)
+        );
+
         // Test negative infinity
         let neg_inf_lng = LngLat::new_deg(f64::NEG_INFINITY, 0.0);
         let neg_inf_lat = LngLat::new_deg(0.0, f64::NEG_INFINITY);
-        assert_eq!(vincenty_distance_m(neg_inf_lng, valid), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(valid, neg_inf_lng), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(neg_inf_lat, valid), Err(VincentyError::Domain));
-        assert_eq!(vincenty_distance_m(valid, neg_inf_lat), Err(VincentyError::Domain));
+        assert_eq!(
+            vincenty_distance_m(neg_inf_lng, valid),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(valid, neg_inf_lng),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(neg_inf_lat, valid),
+            Err(VincentyError::Domain)
+        );
+        assert_eq!(
+            vincenty_distance_m(valid, neg_inf_lat),
+            Err(VincentyError::Domain)
+        );
     }
 
     #[test]
     fn vincenty_exercises_iteration() {
         // Cross antimeridian with significant latitude difference
-        let p1 = LngLat::new_deg(179.5, 45.0);  // Far east, mid latitude
+        let p1 = LngLat::new_deg(179.5, 45.0); // Far east, mid latitude
         let p2 = LngLat::new_deg(-179.5, -45.0); // Far west, opposite hemisphere
-        
+
         let result = vincenty_distance_m(p1, p2);
-        
+
         match result {
             Ok(distance) => {
                 // Should be a very long distance (roughly 1/4 of Earth circumference)
-                assert!(distance > 9_000_000.0 && distance < 25_000_000.0, 
-                       "Complex geodesic distance: {}", distance);
+                assert!(
+                    distance > 9_000_000.0 && distance < 25_000_000.0,
+                    "Complex geodesic distance: {}",
+                    distance
+                );
             }
             Err(VincentyError::DidNotConverge) => {
                 // Also acceptable - this is a challenging case
@@ -559,24 +630,28 @@ mod tests {
         // North: 0°
         let bearing = initial_bearing_deg(LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.0, 1.0));
         approx_eq(bearing, 0.0, 1e-10);
-        
+
         // East: 90°
         let bearing = initial_bearing_deg(LngLat::new_deg(0.0, 0.0), LngLat::new_deg(1.0, 0.0));
         approx_eq(bearing, 90.0, 1e-10);
-        
+
         // South: 180°
         let bearing = initial_bearing_deg(LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.0, -1.0));
         approx_eq(bearing, 180.0, 1e-10);
-        
+
         // West: -90° (or 270°)
         let bearing = initial_bearing_deg(LngLat::new_deg(0.0, 0.0), LngLat::new_deg(-1.0, 0.0));
         approx_eq(bearing, -90.0, 1e-10);
-        
+
         // SF to NYC should be roughly northeast
         let sf = LngLat::new_deg(-122.4194, 37.7749);
         let nyc = LngLat::new_deg(-74.0060, 40.7128);
         let bearing = initial_bearing_deg(sf, nyc);
-        assert!(bearing > 60.0 && bearing < 90.0, "SF to NYC bearing: {}", bearing);
+        assert!(
+            bearing > 60.0 && bearing < 90.0,
+            "SF to NYC bearing: {}",
+            bearing
+        );
     }
 
     #[test]
@@ -595,23 +670,24 @@ mod tests {
     #[test]
     fn test_point_to_segment_enu_m() {
         let segment = (LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 37.0));
-        
+
         let point_on_segment = LngLat::new_deg(-121.5, 37.0);
         let distance = point_to_segment_enu_m(point_on_segment, segment);
         approx_eq(distance, 0.0, 10.0);
-        
+
         let point_north = LngLat::new_deg(-121.5, 37.01);
         let distance = point_to_segment_enu_m(point_north, segment);
         let expected_distance = haversine(
-            LngLat::new_deg(-121.5, 37.0), 
-            LngLat::new_deg(-121.5, 37.01)
+            LngLat::new_deg(-121.5, 37.0),
+            LngLat::new_deg(-121.5, 37.01),
         );
         approx_eq(distance, expected_distance, 100.0);
-        
+
         let zero_segment = (LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-122.0, 37.0));
         let point = LngLat::new_deg(-121.0, 38.0);
         let distance = point_to_segment_enu_m(point, zero_segment);
-        let expected_distance = haversine(LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 38.0));
+        let expected_distance =
+            haversine(LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 38.0));
         approx_eq(distance, expected_distance, 100.0);
     }
 
@@ -620,9 +696,10 @@ mod tests {
         let zero_segment = (LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-122.0, 37.0));
         let point = LngLat::new_deg(-121.0, 38.0);
         let distance = great_circle_point_to_seg(point, zero_segment);
-        let expected_distance = haversine(LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 38.0));
+        let expected_distance =
+            haversine(LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 38.0));
         approx_eq(distance, expected_distance, 100.0);
-        
+
         let segment = (LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 37.0));
         let point_north = LngLat::new_deg(-121.5, 37.01);
         let distance = great_circle_point_to_seg(point_north, segment);
@@ -632,25 +709,41 @@ mod tests {
     #[test]
     fn test_haversine_very_small_distances() {
         let base_point = LngLat::new_deg(0.0, 0.0);
-        
+
         let point_10cm_north = LngLat::new_deg(0.0, 0.0 + 0.1 / 111320.0);
         let distance = haversine(base_point, point_10cm_north);
-        assert!((distance - 0.1).abs() < 1e-3, "10cm distance: got {}, expected ~0.1", distance);
-        
+        assert!(
+            (distance - 0.1).abs() < 1e-3,
+            "10cm distance: got {}, expected ~0.1",
+            distance
+        );
+
         let point_1m_east = LngLat::new_deg(0.0 + 1.0 / 111320.0, 0.0);
         let distance = haversine(base_point, point_1m_east);
-        assert!((distance - 1.0).abs() < 1e-2, "1m distance: got {}, expected ~1.0", distance);
-        
+        assert!(
+            (distance - 1.0).abs() < 1e-2,
+            "1m distance: got {}, expected ~1.0",
+            distance
+        );
+
         let point_10m_northeast = LngLat::new_deg(
             0.0 + (10.0 / 111320.0) / 2.0_f64.sqrt(),
-            0.0 + (10.0 / 111320.0) / 2.0_f64.sqrt()
+            0.0 + (10.0 / 111320.0) / 2.0_f64.sqrt(),
         );
         let distance = haversine(base_point, point_10m_northeast);
-        assert!((distance - 10.0).abs() < 0.1, "10m diagonal distance: got {}, expected ~10.0", distance);
-        
+        assert!(
+            (distance - 10.0).abs() < 0.1,
+            "10m diagonal distance: got {}, expected ~10.0",
+            distance
+        );
+
         let point_1mm_north = LngLat::new_deg(0.0, 0.0 + 0.001 / 111320.0);
         let distance = haversine(base_point, point_1mm_north);
-        assert!((distance - 0.001).abs() < 1e-5, "1mm distance: got {}, expected ~0.001", distance);
+        assert!(
+            (distance - 0.001).abs() < 1e-5,
+            "1mm distance: got {}, expected ~0.001",
+            distance
+        );
     }
 
     #[test]
@@ -658,20 +751,20 @@ mod tests {
         let sf = LngLat::new_deg(-122.4194, 37.7749);
         let nyc = LngLat::new_deg(-74.0060, 40.7128);
         let la = LngLat::new_deg(-118.2437, 34.0522);
-        
+
         assert_eq!(haversine(sf, sf), 0.0);
         assert_eq!(haversine(nyc, nyc), 0.0);
-        
+
         let d_sf_nyc = haversine(sf, nyc);
         let d_nyc_sf = haversine(nyc, sf);
         approx_eq(d_sf_nyc, d_nyc_sf, 1e-9);
-        
+
         let d_sf_la = haversine(sf, la);
         let d_la_nyc = haversine(la, nyc);
         let d_sf_nyc_direct = haversine(sf, nyc);
-        
+
         assert!(d_sf_nyc_direct <= d_sf_la + d_la_nyc + 1e-6);
-        assert!(d_sf_la <= d_sf_nyc_direct + d_la_nyc + 1e-6);  
+        assert!(d_sf_la <= d_sf_nyc_direct + d_la_nyc + 1e-6);
         assert!(d_la_nyc <= d_sf_nyc_direct + d_sf_la + 1e-6);
     }
 
@@ -681,18 +774,18 @@ mod tests {
         let p2 = LngLat::new_deg(-121.0, 37.0);
         let segment = (p1, p2);
         let point = LngLat::new_deg(-121.5, 37.5);
-        
+
         assert_eq!(point_to_segment_enu_m(p1, (p1, p1)), 0.0);
         assert_eq!(point_to_segment_enu_m(p2, (p2, p2)), 0.0);
-        
+
         let d1 = point_to_segment_enu_m(point, segment);
         let d2 = point_to_segment_enu_m(point, (p2, p1));
         approx_eq(d1, d2, 10.0);
-        
+
         let dist_to_p1 = haversine(point, p1);
         let dist_to_p2 = haversine(point, p2);
         let min_endpoint_dist = dist_to_p1.min(dist_to_p2);
-        
+
         assert!(d1 <= min_endpoint_dist + 1000.0);
     }
 
@@ -702,75 +795,78 @@ mod tests {
         let p2 = LngLat::new_deg(-121.0, 37.0);
         let segment = (p1, p2);
         let point = LngLat::new_deg(-121.5, 37.5);
-        
+
         assert_eq!(great_circle_point_to_seg(p1, (p1, p1)), 0.0);
         assert_eq!(great_circle_point_to_seg(p2, (p2, p2)), 0.0);
-        
+
         let d1 = great_circle_point_to_seg(point, segment);
         let d2 = great_circle_point_to_seg(point, (p2, p1));
         approx_eq(d1, d2, 10.0);
-        
+
         let dist_to_p1 = haversine(point, p1);
         let dist_to_p2 = haversine(point, p2);
         let min_endpoint_dist = dist_to_p1.min(dist_to_p2);
-        
+
         assert!(d1 <= min_endpoint_dist + 1000.0);
     }
 
-    // ========================================================================
-    // COMPREHENSIVE ACCURACY VERIFICATION TESTS
-    // ========================================================================
-    
     #[test]
     fn test_haversine_vs_vincenty_cross_validation_short_distances() {
         // Test haversine ±0.5% accuracy claim for distances <1000km
         // Use points within 1000km and cross-validate against Vincenty
-        
+
         let test_cases = vec![
             // Short distances where haversine should be very accurate
-            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.1, 0.0)),        // ~11.1 km
-            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.0, 0.1)),        // ~11.1 km  
-            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(1.0, 1.0)),        // ~157 km diagonal
-            (LngLat::new_deg(-122.4194, 37.7749), LngLat::new_deg(-121.9, 37.5)), // SF area ~50km
+            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.1, 0.0)), // ~11.1 km
+            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(0.0, 0.1)), // ~11.1 km
+            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(1.0, 1.0)), // ~157 km diagonal
+            (
+                LngLat::new_deg(-122.4194, 37.7749),
+                LngLat::new_deg(-121.9, 37.5),
+            ), // SF area ~50km
             // Medium distances approaching 1000km limit
-            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(9.0, 0.0)),        // ~1000 km
-            (LngLat::new_deg(-74.0060, 40.7128), LngLat::new_deg(-75.1652, 39.9526)), // NYC-Philly ~150km
+            (LngLat::new_deg(0.0, 0.0), LngLat::new_deg(9.0, 0.0)), // ~1000 km
+            (
+                LngLat::new_deg(-74.0060, 40.7128),
+                LngLat::new_deg(-75.1652, 39.9526),
+            ), // NYC-Philly ~150km
         ];
-        
+
         for (p1, p2) in test_cases {
             let haversine_dist = haversine(p1, p2);
-            
+
             match vincenty_distance_m(p1, p2) {
                 Ok(vincenty_dist) => {
                     let rel_error = (haversine_dist - vincenty_dist).abs() / vincenty_dist.max(1.0);
-                    
-                    if vincenty_dist <= 1_000_000.0 { // <= 1000km
-                        assert!(rel_error <= 0.005, 
-                               "Haversine accuracy >±0.5% for distance {}m: haversine={}m, vincenty={}m, error={:.3}%", 
-                               vincenty_dist, haversine_dist, vincenty_dist, rel_error * 100.0);
+
+                    if vincenty_dist <= 1_000_000.0 {
+                        assert!(rel_error <= 0.005, "Haversine accuracy >±0.5% for distance {}m: haversine={}m, vincenty={}m, error={:.3}%", vincenty_dist, haversine_dist, vincenty_dist, rel_error * 100.0);
                     } else {
-                        // For distances >1000km, just verify they're in same ballpark
-                        assert!(rel_error <= 0.05, 
-                               "Haversine too inaccurate for distance {}m: error={:.1}%", 
-                               vincenty_dist, rel_error * 100.0);
+                        assert!(
+                            rel_error <= 0.05,
+                            "Haversine too inaccurate for distance {}m: error={:.1}%",
+                            vincenty_dist,
+                            rel_error * 100.0
+                        );
                     }
-                },
+                }
                 Err(_) => {
                     // If Vincenty fails, just verify haversine gives reasonable result
-                    assert!(haversine_dist > 0.0 && haversine_dist < 21_000_000.0); // Max Earth distance
+                    assert!(haversine_dist > 0.0 && haversine_dist < 21_000_000.0);
+                    // Max Earth distance
                 }
             }
         }
     }
 
-    #[test] 
+    #[test]
     fn test_vincenty_accuracy_against_surveyed_baselines() {
         // Test Vincenty ±1mm accuracy claim using known surveyed baselines
         // These are real geodetic measurements with known precise distances
-        
+
         // Flinders Peak to Buninyong (Australia) - classic geodetic baseline
         // Known WGS84 distance: 54,972.271 meters (surveyed to millimeter accuracy)
-        let flinders = LngLat::new_deg(144.42486788, -37.95103341);  
+        let flinders = LngLat::new_deg(144.42486788, -37.95103341);
         let buninyong = LngLat::new_deg(143.92649552, -37.65282113);
         match vincenty_distance_m(flinders, buninyong) {
             Ok(distance) => {
@@ -779,22 +875,26 @@ mod tests {
                 assert!(error <= 0.01, // 1cm tolerance (10x the claimed ±1mm accuracy for safety)
                        "Flinders-Buninyong baseline error {}m exceeds ±1cm: calculated={}m, surveyed={}m", 
                        error, distance, expected);
-            },
+            }
             Err(e) => panic!("Vincenty failed for surveyed baseline: {:?}", e),
         }
-        
+
         // Mount Hopkins to Mount Lemmon (Arizona) - verified baseline distance
         // Distance corrected based on coordinate analysis: ~84,125 meters
         let hopkins = LngLat::new_deg(-110.88311, 31.68839);
-        let lemmon = LngLat::new_deg(-110.79194, 32.44306);  
+        let lemmon = LngLat::new_deg(-110.79194, 32.44306);
         match vincenty_distance_m(hopkins, lemmon) {
             Ok(distance) => {
                 let expected = 84125.0; // meters (verified via coordinate calculation)
-                let error = (distance - expected).abs(); 
-                assert!(error <= 1.0, // 1m tolerance for precise Vincenty calculation
-                       "Hopkins-Lemmon baseline error {}m exceeds ±1m: calculated={}m, expected={}m",
-                       error, distance, expected);
-            },
+                let error = (distance - expected).abs();
+                assert!(
+                    error <= 1.0, // 1m tolerance for precise Vincenty calculation
+                    "Hopkins-Lemmon baseline error {}m exceeds ±1m: calculated={}m, expected={}m",
+                    error,
+                    distance,
+                    expected
+                );
+            }
             Err(e) => panic!("Vincenty failed for surveyed baseline: {:?}", e),
         }
     }
@@ -803,110 +903,157 @@ mod tests {
     fn test_geodesic_accuracy_at_poles() {
         // Test accuracy near poles where longitude compression is extreme
         // and many algorithms fail or become inaccurate
-        
+
         // Points very close to North Pole
         let north_pole_1 = LngLat::new_deg(0.0, 89.9999);
-        let north_pole_2 = LngLat::new_deg(180.0, 89.9999);  // Opposite longitude
-        
+        let north_pole_2 = LngLat::new_deg(180.0, 89.9999); // Opposite longitude
+
         let haversine_dist = haversine(north_pole_1, north_pole_2);
         match vincenty_distance_m(north_pole_1, north_pole_2) {
             Ok(vincenty_dist) => {
                 // Near poles, great circle distance approaches 0 as latitude approaches 90°
                 // Both algorithms should give small distances
-                assert!(vincenty_dist < 1000.0, "Vincenty polar distance too large: {}m", vincenty_dist);
-                assert!(haversine_dist < 1000.0, "Haversine polar distance too large: {}m", haversine_dist);
-                
+                assert!(
+                    vincenty_dist < 1000.0,
+                    "Vincenty polar distance too large: {}m",
+                    vincenty_dist
+                );
+                assert!(
+                    haversine_dist < 1000.0,
+                    "Haversine polar distance too large: {}m",
+                    haversine_dist
+                );
+
                 // Relative error may be high due to small absolute distances, but both should be small
                 let abs_diff = (haversine_dist - vincenty_dist).abs();
-                assert!(abs_diff < 100.0, "Polar distance algorithms differ by {}m", abs_diff);
-            },
+                assert!(
+                    abs_diff < 100.0,
+                    "Polar distance algorithms differ by {}m",
+                    abs_diff
+                );
+            }
             Err(_) => {
                 // Acceptable for Vincenty to fail at poles, but haversine should still work
-                assert!(haversine_dist < 1000.0, "Haversine polar distance: {}m", haversine_dist);
+                assert!(
+                    haversine_dist < 1000.0,
+                    "Haversine polar distance: {}m",
+                    haversine_dist
+                );
             }
         }
-        
+
         // South Pole test
         let south_pole_1 = LngLat::new_deg(45.0, -89.9999);
         let south_pole_2 = LngLat::new_deg(-135.0, -89.9999);
-        
+
         let haversine_south = haversine(south_pole_1, south_pole_2);
-        assert!(haversine_south < 1000.0, "Haversine south polar distance: {}m", haversine_south);
+        assert!(
+            haversine_south < 1000.0,
+            "Haversine south polar distance: {}m",
+            haversine_south
+        );
     }
 
     #[test]
     fn test_geodesic_accuracy_across_antimeridian() {
         // Test accuracy when crossing the International Date Line (±180° longitude)
         // This is a common failure point for naive implementations
-        
-        let west_of_dateline = LngLat::new_deg(179.5, 0.0);   // Just west of dateline
-        let east_of_dateline = LngLat::new_deg(-179.5, 0.0);  // Just east of dateline
-        
+
+        let west_of_dateline = LngLat::new_deg(179.5, 0.0); // Just west of dateline
+        let east_of_dateline = LngLat::new_deg(-179.5, 0.0); // Just east of dateline
+
         let haversine_dist = haversine(west_of_dateline, east_of_dateline);
         match vincenty_distance_m(west_of_dateline, east_of_dateline) {
             Ok(vincenty_dist) => {
                 // Distance should be ~1° longitude ≈ 111 km at equator
                 let expected_approx = 111_000.0;
-                
-                assert!(haversine_dist > 100_000.0 && haversine_dist < 125_000.0, 
-                       "Haversine antimeridian distance unrealistic: {}m", haversine_dist);
-                assert!(vincenty_dist > 100_000.0 && vincenty_dist < 125_000.0,
-                       "Vincenty antimeridian distance unrealistic: {}m", vincenty_dist);
-                
+
+                assert!(
+                    haversine_dist > 100_000.0 && haversine_dist < 125_000.0,
+                    "Haversine antimeridian distance unrealistic: {}m",
+                    haversine_dist
+                );
+                assert!(
+                    vincenty_dist > 100_000.0 && vincenty_dist < 125_000.0,
+                    "Vincenty antimeridian distance unrealistic: {}m",
+                    vincenty_dist
+                );
+
                 // Should be close to expected value
                 let haversine_error = (haversine_dist - expected_approx).abs() / expected_approx;
                 let vincenty_error = (vincenty_dist - expected_approx).abs() / expected_approx;
-                
-                assert!(haversine_error < 0.05, "Haversine antimeridian error: {:.1}%", haversine_error * 100.0);
-                assert!(vincenty_error < 0.01, "Vincenty antimeridian error: {:.2}%", vincenty_error * 100.0);
-            },
+
+                assert!(
+                    haversine_error < 0.05,
+                    "Haversine antimeridian error: {:.1}%",
+                    haversine_error * 100.0
+                );
+                assert!(
+                    vincenty_error < 0.01,
+                    "Vincenty antimeridian error: {:.2}%",
+                    vincenty_error * 100.0
+                );
+            }
             Err(_) => {
                 // If Vincenty fails across antimeridian, haversine should still work
                 assert!(haversine_dist > 100_000.0 && haversine_dist < 125_000.0);
             }
         }
-        
+
         // Test with significant latitude difference
         let complex_antimeridian_1 = LngLat::new_deg(179.0, 45.0);
         let complex_antimeridian_2 = LngLat::new_deg(-179.0, -30.0);
-        
+
         let complex_haversine = haversine(complex_antimeridian_1, complex_antimeridian_2);
-        assert!(complex_haversine > 1_000_000.0 && complex_haversine < 20_000_000.0,
-               "Complex antimeridian distance out of range: {}m", complex_haversine);
+        assert!(
+            complex_haversine > 1_000_000.0 && complex_haversine < 20_000_000.0,
+            "Complex antimeridian distance out of range: {}m",
+            complex_haversine
+        );
     }
 
     #[test]
     fn test_geodesic_numerical_precision_boundaries() {
         // Test numerical precision at the boundaries of floating-point accuracy
         // Verify algorithms handle very small and very large distances correctly
-        
+
         // Very small distances (millimeter scale)
         let base_point = LngLat::new_deg(0.0, 0.0);
         let tiny_offset = LngLat::new_deg(0.0, 0.000001); // ~0.1m north
-        
+
         let tiny_haversine = haversine(base_point, tiny_offset);
-        assert!(tiny_haversine > 0.05 && tiny_haversine < 0.15, 
-               "Tiny distance out of range: {}m", tiny_haversine);
-        
+        assert!(
+            tiny_haversine > 0.05 && tiny_haversine < 0.15,
+            "Tiny distance out of range: {}m",
+            tiny_haversine
+        );
+
         match vincenty_distance_m(base_point, tiny_offset) {
             Ok(tiny_vincenty) => {
                 assert!(tiny_vincenty > 0.05 && tiny_vincenty < 0.15);
                 let rel_diff = (tiny_haversine - tiny_vincenty).abs() / tiny_vincenty.max(0.001);
-                assert!(rel_diff < 0.1, "Tiny distance relative error: {:.1}%", rel_diff * 100.0);
-            },
+                assert!(
+                    rel_diff < 0.1,
+                    "Tiny distance relative error: {:.1}%",
+                    rel_diff * 100.0
+                );
+            }
             Err(_) => {
                 // Acceptable for Vincenty to have precision issues at very small scales
             }
         }
-        
+
         // Very large distances (nearly antipodal)
         let far_point_1 = LngLat::new_deg(0.0, 0.0);
         let far_point_2 = LngLat::new_deg(179.0, 0.0); // Nearly antipodal
-        
+
         let far_haversine = haversine(far_point_1, far_point_2);
-        assert!(far_haversine > 19_000_000.0 && far_haversine < 21_000_000.0,
-               "Long distance out of range: {}m", far_haversine);
-        
+        assert!(
+            far_haversine > 19_000_000.0 && far_haversine < 21_000_000.0,
+            "Long distance out of range: {}m",
+            far_haversine
+        );
+
         // Vincenty may fail for nearly antipodal points - that's expected and documented
     }
 
@@ -914,35 +1061,50 @@ mod tests {
     fn test_geodesic_accuracy_latitude_bands() {
         // Test accuracy across different latitude bands where Earth's curvature varies
         // WGS84 ellipsoid has different curvature at equator vs poles
-        
+
         let longitude_offset = 1.0; // 1 degree longitude
         let test_latitudes = vec![0.0, 30.0, 45.0, 60.0, 75.0]; // Equator to near-polar
-        
+
         for lat in test_latitudes {
             let p1 = LngLat::new_deg(0.0, lat);
             let p2 = LngLat::new_deg(longitude_offset, lat);
-            
+
             let haversine_dist = haversine(p1, p2);
-            
+
             match vincenty_distance_m(p1, p2) {
                 Ok(vincenty_dist) => {
                     // At higher latitudes, longitude degrees represent shorter distances
                     // At 60° latitude, 1° longitude ≈ 55.5 km (cos(60°) * 111 km)
                     let expected_approx = 111_320.0 * lat.to_radians().cos(); // Rough expectation
-                    
-                    let haversine_error = (haversine_dist - expected_approx).abs() / expected_approx.max(1000.0);
-                    let vincenty_error = (vincenty_dist - expected_approx).abs() / expected_approx.max(1000.0);
-                    
-                    assert!(haversine_error < 0.01, 
-                           "Haversine latitude band {}° error: {:.2}%", lat, haversine_error * 100.0);
-                    assert!(vincenty_error < 0.005,
-                           "Vincenty latitude band {}° error: {:.3}%", lat, vincenty_error * 100.0);
-                    
+
+                    let haversine_error =
+                        (haversine_dist - expected_approx).abs() / expected_approx.max(1000.0);
+                    let vincenty_error =
+                        (vincenty_dist - expected_approx).abs() / expected_approx.max(1000.0);
+
+                    assert!(
+                        haversine_error < 0.01,
+                        "Haversine latitude band {}° error: {:.2}%",
+                        lat,
+                        haversine_error * 100.0
+                    );
+                    assert!(
+                        vincenty_error < 0.005,
+                        "Vincenty latitude band {}° error: {:.3}%",
+                        lat,
+                        vincenty_error * 100.0
+                    );
+
                     // Algorithms should be consistent with each other
-                    let rel_consistency = (haversine_dist - vincenty_dist).abs() / vincenty_dist.max(1000.0);
-                    assert!(rel_consistency < 0.01,
-                           "Algorithm inconsistency at {}°: {:.2}%", lat, rel_consistency * 100.0);
-                },
+                    let rel_consistency =
+                        (haversine_dist - vincenty_dist).abs() / vincenty_dist.max(1000.0);
+                    assert!(
+                        rel_consistency < 0.01,
+                        "Algorithm inconsistency at {}°: {:.2}%",
+                        lat,
+                        rel_consistency * 100.0
+                    );
+                }
                 Err(_) => {
                     // If Vincenty fails, just check haversine is reasonable
                     assert!(haversine_dist > 1000.0 && haversine_dist < 150_000.0);
@@ -955,42 +1117,54 @@ mod tests {
     fn test_geodesic_accuracy_extreme_aspect_ratios() {
         // Test accuracy for paths with extreme aspect ratios (very long/thin or very wide/short)
         // These can expose numerical instabilities in geodesic calculations
-        
+
         // Very long east-west, minimal north-south
         let extreme_ew_1 = LngLat::new_deg(-120.0, 45.0);
-        let extreme_ew_2 = LngLat::new_deg(-30.0, 45.0001);  // 90° longitude, tiny latitude change
-        
+        let extreme_ew_2 = LngLat::new_deg(-30.0, 45.0001); // 90° longitude, tiny latitude change
+
         let ew_haversine = haversine(extreme_ew_1, extreme_ew_2);
         match vincenty_distance_m(extreme_ew_1, extreme_ew_2) {
             Ok(ew_vincenty) => {
                 // Compare algorithms against each other (Vincenty is reference)
                 let haversine_error = (ew_haversine - ew_vincenty).abs() / ew_vincenty;
-                
+
                 // For extreme cases, allow reasonable tolerances between algorithms
-                assert!(haversine_error < 0.01, "Extreme E-W haversine vs vincenty error: {:.1}%", haversine_error * 100.0);
-            },
+                assert!(
+                    haversine_error < 0.01,
+                    "Extreme E-W haversine vs vincenty error: {:.1}%",
+                    haversine_error * 100.0
+                );
+            }
             Err(_) => {
                 // Vincenty may fail for such extreme cases
                 assert!(ew_haversine > 6_000_000.0 && ew_haversine < 8_000_000.0);
             }
         }
-        
-        // Very long north-south, minimal east-west  
+
+        // Very long north-south, minimal east-west
         let extreme_ns_1 = LngLat::new_deg(0.0001, -60.0);
-        let extreme_ns_2 = LngLat::new_deg(0.0, 60.0);  // Tiny longitude change, 120° latitude
-        
+        let extreme_ns_2 = LngLat::new_deg(0.0, 60.0); // Tiny longitude change, 120° latitude
+
         let ns_haversine = haversine(extreme_ns_1, extreme_ns_2);
         match vincenty_distance_m(extreme_ns_1, extreme_ns_2) {
             Ok(ns_vincenty) => {
                 // Should be roughly 120° of meridional arc ≈ 13,269 km
                 let expected_ns = 111_320.0 * 120.0; // Rough approximation
-                
+
                 let haversine_error = (ns_haversine - expected_ns).abs() / expected_ns;
                 let vincenty_error = (ns_vincenty - expected_ns).abs() / expected_ns;
-                
-                assert!(haversine_error < 0.02, "Extreme N-S haversine error: {:.1}%", haversine_error * 100.0);
-                assert!(vincenty_error < 0.005, "Extreme N-S vincenty error: {:.2}%", vincenty_error * 100.0);
-            },
+
+                assert!(
+                    haversine_error < 0.02,
+                    "Extreme N-S haversine error: {:.1}%",
+                    haversine_error * 100.0
+                );
+                assert!(
+                    vincenty_error < 0.005,
+                    "Extreme N-S vincenty error: {:.2}%",
+                    vincenty_error * 100.0
+                );
+            }
             Err(_) => {
                 assert!(ns_haversine > 12_000_000.0 && ns_haversine < 15_000_000.0);
             }
@@ -1001,43 +1175,59 @@ mod tests {
     fn test_geodesic_consistency_with_spherical_trigonometry() {
         // Cross-validate geodesic algorithms against direct spherical trigonometry
         // for cases where spherical law of cosines should be accurate
-        
+
         // Use medium distances where spherical approximation is good
-        let p1 = LngLat::new_deg(0.0, 0.0);      // Equator at prime meridian
-        let p2 = LngLat::new_deg(90.0, 0.0);     // Equator at 90°E (quarter Earth circumference)
-        
+        let p1 = LngLat::new_deg(0.0, 0.0); // Equator at prime meridian
+        let p2 = LngLat::new_deg(90.0, 0.0); // Equator at 90°E (quarter Earth circumference)
+
         let haversine_dist = haversine(p1, p2);
-        
+
         // Calculate using spherical law of cosines for comparison
         let (lng1_rad, lat1_rad) = p1.to_radians();
         let (lng2_rad, lat2_rad) = p2.to_radians();
-        let spherical_law_cosines = EARTH_RADIUS_M * (
-            lat1_rad.sin() * lat2_rad.sin() + 
-            lat1_rad.cos() * lat2_rad.cos() * (lng2_rad - lng1_rad).cos()
-        ).acos();
-        
+        let spherical_law_cosines = EARTH_RADIUS_M
+            * (lat1_rad.sin() * lat2_rad.sin()
+                + lat1_rad.cos() * lat2_rad.cos() * (lng2_rad - lng1_rad).cos())
+            .acos();
+
         // Haversine and spherical law of cosines should agree closely
-        let spherical_error = (haversine_dist - spherical_law_cosines).abs() / spherical_law_cosines.max(1.0);
-        assert!(spherical_error < 0.0001, 
-               "Haversine vs spherical law of cosines error: {:.4}%", spherical_error * 100.0);
-        
+        let spherical_error =
+            (haversine_dist - spherical_law_cosines).abs() / spherical_law_cosines.max(1.0);
+        assert!(
+            spherical_error < 0.0001,
+            "Haversine vs spherical law of cosines error: {:.4}%",
+            spherical_error * 100.0
+        );
+
         // Cross-validate with Vincenty
         match vincenty_distance_m(p1, p2) {
             Ok(vincenty_dist) => {
                 // Quarter circumference should be ~10,018 km
                 let expected_quarter = std::f64::consts::PI * EARTH_RADIUS_M / 2.0;
-                
+
                 let haversine_error = (haversine_dist - expected_quarter).abs() / expected_quarter;
                 let vincenty_error = (vincenty_dist - expected_quarter).abs() / expected_quarter;
-                
-                assert!(haversine_error < 0.01, "Haversine quarter-Earth error: {:.2}%", haversine_error * 100.0);
-                assert!(vincenty_error < 0.005, "Vincenty quarter-Earth error: {:.3}%", vincenty_error * 100.0);
-            },
+
+                assert!(
+                    haversine_error < 0.01,
+                    "Haversine quarter-Earth error: {:.2}%",
+                    haversine_error * 100.0
+                );
+                assert!(
+                    vincenty_error < 0.005,
+                    "Vincenty quarter-Earth error: {:.3}%",
+                    vincenty_error * 100.0
+                );
+            }
             Err(_) => {
                 // If Vincenty fails, still validate haversine against spherical calculation
                 let expected_quarter = std::f64::consts::PI * EARTH_RADIUS_M / 2.0;
                 let error = (haversine_dist - expected_quarter).abs() / expected_quarter;
-                assert!(error < 0.01, "Haversine quarter-Earth error without Vincenty: {:.2}%", error * 100.0);
+                assert!(
+                    error < 0.01,
+                    "Haversine quarter-Earth error without Vincenty: {:.2}%",
+                    error * 100.0
+                );
             }
         }
     }

@@ -1,4 +1,4 @@
-use map_distance::{LngLat, geodesic::haversine};
+use map_distance::{geodesic::haversine, LngLat};
 
 fn main() {
     // testing some city distances
@@ -14,14 +14,14 @@ fn main() {
 
     // check small distances work
     let here = LngLat::new_deg(0.0, 0.0);
-    let nearby = LngLat::new_deg(0.01, 0.01);  // about 1.5km northeast
-    
+    let nearby = LngLat::new_deg(0.01, 0.01); // about 1.5km northeast
+
     println!("tiny distance: {:.0} m", haversine(here, nearby));
 
     // lng,lat order check
     let p1 = LngLat::new_deg(-122.0, 37.0);
-    let p2 = LngLat::new_deg(-121.0, 37.0);  // 1 degree east
-    
+    let p2 = LngLat::new_deg(-121.0, 37.0); // 1 degree east
+
     println!("1 deg longitude: {:.0} m", haversine(p1, p2));
     println!("should be ~111km at this lat");
 }

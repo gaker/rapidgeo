@@ -1,7 +1,5 @@
-use criterion::{
-    black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput,
-};
-use map_distance::{LngLat, geodesic, euclid};
+use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use map_distance::{euclid, geodesic, LngLat};
 
 #[cfg(feature = "batch")]
 use map_distance::batch;
@@ -65,15 +63,30 @@ fn bench_single_distance_functions(c: &mut Criterion) {
     let point = LngLat::new_deg(-98.5, 39.5);
 
     group.bench_function("point_to_segment_euclidean", |b| {
-        b.iter(|| black_box(euclid::point_to_segment(black_box(point), black_box(segment))))
+        b.iter(|| {
+            black_box(euclid::point_to_segment(
+                black_box(point),
+                black_box(segment),
+            ))
+        })
     });
 
     group.bench_function("point_to_segment_enu", |b| {
-        b.iter(|| black_box(geodesic::point_to_segment_enu_m(black_box(point), black_box(segment))))
+        b.iter(|| {
+            black_box(geodesic::point_to_segment_enu_m(
+                black_box(point),
+                black_box(segment),
+            ))
+        })
     });
 
     group.bench_function("point_to_segment_gc", |b| {
-        b.iter(|| black_box(geodesic::great_circle_point_to_seg(black_box(point), black_box(segment))))
+        b.iter(|| {
+            black_box(geodesic::great_circle_point_to_seg(
+                black_box(point),
+                black_box(segment),
+            ))
+        })
     });
 
     group.finish();
@@ -89,41 +102,55 @@ fn bench_batch_operations(c: &mut Criterion) {
 
         // serial pairwise
         group.throughput(Throughput::Elements(pairs));
-        group.bench_with_input(BenchmarkId::new("pairwise_haversine_serial", size), &points, |b, pts| {
-            b.iter(|| {
-                // allocate is intentional here — measuring allocating variant
-                let v: Vec<f64> = batch::pairwise_haversine(black_box(pts)).collect();
-                black_box(v);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("pairwise_haversine_serial", size),
+            &points,
+            |b, pts| {
+                b.iter(|| {
+                    // allocate is intentional here — measuring allocating variant
+                    let v: Vec<f64> = batch::pairwise_haversine(black_box(pts)).collect();
+                    black_box(v);
+                })
+            },
+        );
 
         // parallel pairwise
         group.throughput(Throughput::Elements(pairs));
-        group.bench_with_input(BenchmarkId::new("pairwise_haversine_parallel", size), &points, |b, pts| {
-            b.iter(|| {
-                let v = batch::pairwise_haversine_par(black_box(pts));
-                black_box(v);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("pairwise_haversine_parallel", size),
+            &points,
+            |b, pts| {
+                b.iter(|| {
+                    let v = batch::pairwise_haversine_par(black_box(pts));
+                    black_box(v);
+                })
+            },
+        );
 
         // path length serial
         group.throughput(Throughput::Elements(pairs));
-        group.bench_with_input(BenchmarkId::new("path_length_haversine", size), &points, |b, pts| {
-            b.iter(|| black_box(batch::path_length_haversine(black_box(pts))))
-        });
+        group.bench_with_input(
+            BenchmarkId::new("path_length_haversine", size),
+            &points,
+            |b, pts| b.iter(|| black_box(batch::path_length_haversine(black_box(pts)))),
+        );
 
         // path length parallel
         group.throughput(Throughput::Elements(pairs));
-        group.bench_with_input(BenchmarkId::new("path_length_haversine_parallel", size), &points, |b, pts| {
-            b.iter(|| black_box(batch::path_length_haversine_par(black_box(pts))))
-        });
+        group.bench_with_input(
+            BenchmarkId::new("path_length_haversine_parallel", size),
+            &points,
+            |b, pts| b.iter(|| black_box(batch::path_length_haversine_par(black_box(pts)))),
+        );
 
         #[cfg(feature = "vincenty")]
         {
             group.throughput(Throughput::Elements(pairs));
-            group.bench_with_input(BenchmarkId::new("path_length_vincenty", size), &points, |b, pts| {
-                b.iter(|| black_box(batch::path_length_vincenty_m(black_box(pts))))
-            });
+            group.bench_with_input(
+                BenchmarkId::new("path_length_vincenty", size),
+                &points,
+                |b, pts| b.iter(|| black_box(batch::path_length_vincenty_m(black_box(pts)))),
+            );
         }
     }
 
@@ -139,24 +166,34 @@ fn bench_batch_operations(c: &mut Criterion) {
         let pairs = (size - 1) as u64;
 
         group.throughput(Throughput::Elements(pairs));
-        group.bench_with_input(BenchmarkId::new("pairwise_haversine_manual", size), &points, |b, pts| {
-            b.iter(|| {
-                let v: Vec<f64> = pts.windows(2)
-                    .map(|pair| geodesic::haversine(pair[0], pair[1]))
-                    .collect();
-                black_box(v);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("pairwise_haversine_manual", size),
+            &points,
+            |b, pts| {
+                b.iter(|| {
+                    let v: Vec<f64> = pts
+                        .windows(2)
+                        .map(|pair| geodesic::haversine(pair[0], pair[1]))
+                        .collect();
+                    black_box(v);
+                })
+            },
+        );
 
         group.throughput(Throughput::Elements(pairs));
-        group.bench_with_input(BenchmarkId::new("path_length_haversine_manual", size), &points, |b, pts| {
-            b.iter(|| {
-                let s: f64 = pts.windows(2)
-                    .map(|pair| geodesic::haversine(pair[0], pair[1]))
-                    .sum();
-                black_box(s);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("path_length_haversine_manual", size),
+            &points,
+            |b, pts| {
+                b.iter(|| {
+                    let s: f64 = pts
+                        .windows(2)
+                        .map(|pair| geodesic::haversine(pair[0], pair[1]))
+                        .sum();
+                    black_box(s);
+                })
+            },
+        );
     }
 
     group.finish();
@@ -171,12 +208,16 @@ fn bench_distances_to_point(c: &mut Criterion) {
         let points = generate_test_points(size);
         group.throughput(Throughput::Elements(size as u64));
 
-        group.bench_with_input(BenchmarkId::new("distances_to_point_parallel", size), &points, |b, pts| {
-            b.iter(|| {
-                let v = batch::distances_to_point_par(black_box(pts), black_box(target));
-                black_box(v);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("distances_to_point_parallel", size),
+            &points,
+            |b, pts| {
+                b.iter(|| {
+                    let v = batch::distances_to_point_par(black_box(pts), black_box(target));
+                    black_box(v);
+                })
+            },
+        );
     }
 
     group.finish();
@@ -191,14 +232,19 @@ fn bench_distances_to_point(c: &mut Criterion) {
         let points = generate_test_points(size);
         group.throughput(Throughput::Elements(size as u64));
 
-        group.bench_with_input(BenchmarkId::new("distances_to_point_manual_serial", size), &points, |b, pts| {
-            b.iter(|| {
-                let v: Vec<f64> = pts.iter()
-                    .map(|&p| geodesic::haversine(p, black_box(target)))
-                    .collect();
-                black_box(v);
-            })
-        });
+        group.bench_with_input(
+            BenchmarkId::new("distances_to_point_manual_serial", size),
+            &points,
+            |b, pts| {
+                b.iter(|| {
+                    let v: Vec<f64> = pts
+                        .iter()
+                        .map(|&p| geodesic::haversine(p, black_box(target)))
+                        .collect();
+                    black_box(v);
+                })
+            },
+        );
     }
 
     group.finish();
@@ -346,9 +392,11 @@ fn bench_numerical_stability(c: &mut Criterion) {
         // 1 deg lat ≈ 111_320 m near equator
         let dlat = meters / 111_320.0;
         let p = LngLat::new_deg(0.0, dlat);
-        group.bench_with_input(BenchmarkId::new("haversine_small_distance", name), &p, |b, p| {
-            b.iter(|| black_box(geodesic::haversine(black_box(base), black_box(*p))))
-        });
+        group.bench_with_input(
+            BenchmarkId::new("haversine_small_distance", name),
+            &p,
+            |b, p| b.iter(|| black_box(geodesic::haversine(black_box(base), black_box(*p)))),
+        );
     }
 
     let large = [
@@ -357,12 +405,23 @@ fn bench_numerical_stability(c: &mut Criterion) {
         ("antipodal", LngLat::new_deg(179.9, 0.1)),
     ];
     for (name, p) in large {
-        group.bench_with_input(BenchmarkId::new("haversine_large_distance", name), &p, |b, p| {
-            b.iter(|| black_box(geodesic::haversine(black_box(base), black_box(*p))))
-        });
-        group.bench_with_input(BenchmarkId::new("vincenty_large_distance", name), &p, |b, p| {
-            b.iter(|| black_box(geodesic::vincenty_distance_m(black_box(base), black_box(*p))))
-        });
+        group.bench_with_input(
+            BenchmarkId::new("haversine_large_distance", name),
+            &p,
+            |b, p| b.iter(|| black_box(geodesic::haversine(black_box(base), black_box(*p)))),
+        );
+        group.bench_with_input(
+            BenchmarkId::new("vincenty_large_distance", name),
+            &p,
+            |b, p| {
+                b.iter(|| {
+                    black_box(geodesic::vincenty_distance_m(
+                        black_box(base),
+                        black_box(*p),
+                    ))
+                })
+            },
+        );
     }
 
     group.finish();

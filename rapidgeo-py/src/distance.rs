@@ -1,8 +1,8 @@
 #![allow(non_local_definitions)]
 
+use map_distance::{geodesic, LngLat as CoreLngLat};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use map_distance::{LngLat as CoreLngLat, geodesic};
 
 #[pyclass]
 #[derive(Clone, Copy)]
@@ -18,17 +18,17 @@ impl LngLat {
             inner: CoreLngLat::new_deg(lng, lat),
         }
     }
-    
+
     #[getter]
     pub fn lng(&self) -> f64 {
         self.inner.lng_deg
     }
-    
+
     #[getter]
     pub fn lat(&self) -> f64 {
         self.inner.lat_deg
     }
-    
+
     fn __repr__(&self) -> String {
         format!("LngLat({}, {})", self.lng(), self.lat())
     }
@@ -48,22 +48,22 @@ impl From<CoreLngLat> for LngLat {
 
 pub mod geo {
     use super::*;
-    
+
     #[pyfunction]
     pub fn haversine(a: LngLat, b: LngLat) -> f64 {
         geodesic::haversine(a.into(), b.into())
     }
-    
+
     #[pyfunction]
     pub fn vincenty_distance(a: LngLat, b: LngLat) -> PyResult<f64> {
         match geodesic::vincenty_distance_m(a.into(), b.into()) {
             Ok(distance) => Ok(distance),
             Err(_) => Err(pyo3::exceptions::PyValueError::new_err(
-                "Vincenty algorithm failed to converge"
+                "Vincenty algorithm failed to converge",
             )),
         }
     }
-    
+
     pub fn create_module(py: Python) -> PyResult<&PyModule> {
         let m = PyModule::new(py, "geo")?;
         m.add_function(wrap_pyfunction!(haversine, m)?)?;
@@ -74,27 +74,30 @@ pub mod geo {
 
 pub mod euclid_mod {
     use super::*;
-    
+
     #[pyfunction]
     pub fn euclid(a: LngLat, b: LngLat) -> f64 {
         map_distance::euclid::distance_euclid(a.into(), b.into())
     }
-    
+
     #[pyfunction]
     pub fn squared(a: LngLat, b: LngLat) -> f64 {
         map_distance::euclid::distance_squared(a.into(), b.into())
     }
-    
+
     #[pyfunction]
     pub fn point_to_segment(point: LngLat, seg_start: LngLat, seg_end: LngLat) -> f64 {
         map_distance::euclid::point_to_segment(point.into(), (seg_start.into(), seg_end.into()))
     }
-    
+
     #[pyfunction]
     pub fn point_to_segment_squared(point: LngLat, seg_start: LngLat, seg_end: LngLat) -> f64 {
-        map_distance::euclid::point_to_segment_squared(point.into(), (seg_start.into(), seg_end.into()))
+        map_distance::euclid::point_to_segment_squared(
+            point.into(),
+            (seg_start.into(), seg_end.into()),
+        )
     }
-    
+
     pub fn create_module(py: Python) -> PyResult<&PyModule> {
         let m = PyModule::new(py, "euclid")?;
         m.add_function(wrap_pyfunction!(euclid, m)?)?;
@@ -107,71 +110,78 @@ pub mod euclid_mod {
 
 pub mod batch_mod {
     use super::*;
-    
+
     #[pyfunction]
     pub fn pairwise_haversine(py: Python, points: &PyList) -> PyResult<Vec<f64>> {
-        let core_pts: Vec<CoreLngLat> = points.iter()
+        let core_pts: Vec<CoreLngLat> = points
+            .iter()
             .map(|item| {
                 let pt: LngLat = item.extract()?;
                 Ok(pt.into())
             })
             .collect::<PyResult<Vec<_>>>()?;
-        
+
         Ok(py.allow_threads(move || {
-            core_pts.windows(2)
+            core_pts
+                .windows(2)
                 .map(|pair| map_distance::geodesic::haversine(pair[0], pair[1]))
                 .collect()
         }))
     }
-    
+
     #[pyfunction]
     pub fn path_length_haversine(py: Python, points: &PyList) -> PyResult<f64> {
-        let core_pts: Vec<CoreLngLat> = points.iter()
+        let core_pts: Vec<CoreLngLat> = points
+            .iter()
             .map(|item| {
                 let pt: LngLat = item.extract()?;
                 Ok(pt.into())
             })
             .collect::<PyResult<Vec<_>>>()?;
-        
+
         Ok(py.allow_threads(move || {
-            core_pts.windows(2)
+            core_pts
+                .windows(2)
                 .map(|pair| map_distance::geodesic::haversine(pair[0], pair[1]))
                 .sum()
         }))
     }
-    
+
     #[cfg(feature = "vincenty")]
     #[pyfunction]
     pub fn path_length_vincenty(py: Python, points: &PyList) -> PyResult<f64> {
-        let core_pts: Vec<CoreLngLat> = points.iter()
+        let core_pts: Vec<CoreLngLat> = points
+            .iter()
             .map(|item| {
                 let pt: LngLat = item.extract()?;
                 Ok(pt.into())
             })
             .collect::<PyResult<Vec<_>>>()?;
-        
+
         py.allow_threads(move || -> PyResult<f64> {
             let mut total = 0.0;
             for pair in core_pts.windows(2) {
                 match map_distance::geodesic::vincenty_distance_m(pair[0], pair[1]) {
                     Ok(distance) => total += distance,
-                    Err(_) => return Err(pyo3::exceptions::PyValueError::new_err(
-                        "Vincenty algorithm failed to converge"
-                    )),
+                    Err(_) => {
+                        return Err(pyo3::exceptions::PyValueError::new_err(
+                            "Vincenty algorithm failed to converge",
+                        ))
+                    }
                 }
             }
             Ok(total)
         })
     }
-    
+
     pub fn create_module(py: Python) -> PyResult<&PyModule> {
         let m = PyModule::new(py, "batch")?;
         m.add_function(wrap_pyfunction!(pairwise_haversine, m)?)?;
         m.add_function(wrap_pyfunction!(path_length_haversine, m)?)?;
-        
+
         #[cfg(feature = "vincenty")]
         m.add_function(wrap_pyfunction!(path_length_vincenty, m)?)?;
-        
+
         Ok(m)
     }
 }
@@ -182,6 +192,12 @@ pub fn create_module(py: Python) -> PyResult<&PyModule> {
     m.add_submodule(geo::create_module(py)?)?;
     m.add_submodule(euclid_mod::create_module(py)?)?;
     m.add_submodule(batch_mod::create_module(py)?)?;
-    
+
+    #[cfg(feature = "numpy")]
+    {
+        use crate::numpy_batch;
+        m.add_submodule(numpy_batch::create_module(py)?)?;
+    }
+
     Ok(m)
 }

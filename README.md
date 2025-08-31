@@ -1,6 +1,6 @@
 # RapidGo
 
-[![CI](https://github.com/gaker/rapidgo/workflows/CI/badge.svg)](https://github.com/gaker/rapidgo/actions?query=workflow%3ACI)
+[![CI](https://github.com/gaker/rapidgeo/workflows/CI/badge.svg)](https://github.com/gaker/rapidgeo/actions)
 [![PyPI](https://img.shields.io/pypi/v/rapidgeo.svg)](https://pypi.org/project/rapidgeo/)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
@@ -39,13 +39,6 @@ distance = haversine(sf, nyc)
 
 [**📖 Python Docs**](https://github.com/gaker/rapidgo/tree/main/rapidgeo-py)
 
-## Performance
-
-| Algorithm | Speed | Accuracy | Best For |
-|-----------|-------|----------|----------|
-| Haversine | 46ns | ±0.5% | Distances <1000km |
-| Vincenty | 271ns | ±1mm | High precision |
-| Euclidean | 1ns | Poor at scale | Relative comparisons |
 
 ## Coordinate System
 

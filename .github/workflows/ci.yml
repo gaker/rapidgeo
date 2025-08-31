@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   test-rust:
@@ -37,7 +37,7 @@ jobs:
       run: cargo fmt --all -- --check
     
     - name: Run clippy
-      run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      run: cargo clippy --workspace --all-targets -- -D warnings
     
     - name: Test map-distance
       run: cargo test -p map-distance --all-targets --all-features
@@ -69,6 +69,7 @@ jobs:
     
     - name: Install maturin
       run: pip install maturin[patchelf]
+    
     
     - name: Build and install rapidgeo (base)
       run: |

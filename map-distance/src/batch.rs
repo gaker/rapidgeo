@@ -44,7 +44,7 @@
 //! pairwise_haversine_into(&points, &mut buffer);
 //! ```
 
-use crate::{LngLat, geodesic};
+use crate::{geodesic, LngLat};
 
 #[cfg(feature = "batch")]
 use rayon::prelude::*;
@@ -69,7 +69,7 @@ use rayon::prelude::*;
 ///
 /// let path = [
 ///     LngLat::new_deg(0.0, 0.0),
-///     LngLat::new_deg(1.0, 0.0), 
+///     LngLat::new_deg(1.0, 0.0),
 ///     LngLat::new_deg(1.0, 1.0),
 /// ];
 ///
@@ -79,7 +79,8 @@ use rayon::prelude::*;
 /// assert!(distances[0] > 110_000.0 && distances[0] < 112_000.0);
 /// ```
 pub fn pairwise_haversine(pts: &[LngLat]) -> impl Iterator<Item = f64> + '_ {
-    pts.windows(2).map(|pair| geodesic::haversine(pair[0], pair[1]))
+    pts.windows(2)
+        .map(|pair| geodesic::haversine(pair[0], pair[1]))
 }
 
 /// Calculates the total haversine distance along a path.
@@ -102,7 +103,7 @@ pub fn pairwise_haversine(pts: &[LngLat]) -> impl Iterator<Item = f64> + '_ {
 ///
 /// let path = [
 ///     LngLat::new_deg(0.0, 0.0),
-///     LngLat::new_deg(1.0, 0.0), 
+///     LngLat::new_deg(1.0, 0.0),
 ///     LngLat::new_deg(1.0, 1.0),
 /// ];
 ///
@@ -146,40 +147,48 @@ pub fn path_length_haversine(pts: &[LngLat]) -> f64 {
 #[cfg(feature = "batch")]
 pub fn pairwise_haversine_par(pts: &[LngLat]) -> Vec<f64> {
     pts.windows(2)
-       .collect::<Vec<_>>()
-       .par_iter()
-       .map(|pair| geodesic::haversine(pair[0], pair[1]))
-       .collect()
+        .collect::<Vec<_>>()
+        .par_iter()
+        .map(|pair| geodesic::haversine(pair[0], pair[1]))
+        .collect()
 }
 
 #[cfg(feature = "batch")]
 pub fn path_length_haversine_par(pts: &[LngLat]) -> f64 {
     pts.windows(2)
-       .collect::<Vec<_>>()
-       .par_iter()
-       .map(|pair| geodesic::haversine(pair[0], pair[1]))
-       .sum()
+        .collect::<Vec<_>>()
+        .par_iter()
+        .map(|pair| geodesic::haversine(pair[0], pair[1]))
+        .sum()
 }
 
 #[cfg(feature = "batch")]
 pub fn distances_to_point_par(points: &[LngLat], target: LngLat) -> Vec<f64> {
-    points.par_iter()
-          .map(|&p| geodesic::haversine(p, target))
-          .collect()
+    points
+        .par_iter()
+        .map(|&p| geodesic::haversine(p, target))
+        .collect()
 }
 
 #[cfg(feature = "batch")]
-pub fn distances_to_point_vincenty_par(points: &[LngLat], target: LngLat) -> Result<Vec<f64>, geodesic::VincentyError> {
-    points.par_iter()
-          .map(|&p| geodesic::vincenty_distance_m(p, target))
-          .collect()
+pub fn distances_to_point_vincenty_par(
+    points: &[LngLat],
+    target: LngLat,
+) -> Result<Vec<f64>, geodesic::VincentyError> {
+    points
+        .par_iter()
+        .map(|&p| geodesic::vincenty_distance_m(p, target))
+        .collect()
 }
 
 pub fn pairwise_haversine_into(pts: &[LngLat], output: &mut [f64]) {
-    assert!(output.len() >= pts.len().saturating_sub(1), 
-           "Output buffer too small: need {}, got {}", 
-           pts.len().saturating_sub(1), output.len());
-    
+    assert!(
+        output.len() >= pts.len().saturating_sub(1),
+        "Output buffer too small: need {}, got {}",
+        pts.len().saturating_sub(1),
+        output.len()
+    );
+
     for (i, pair) in pts.windows(2).enumerate() {
         output[i] = geodesic::haversine(pair[0], pair[1]);
     }
@@ -187,10 +196,13 @@ pub fn pairwise_haversine_into(pts: &[LngLat], output: &mut [f64]) {
 
 #[cfg(feature = "batch")]
 pub fn pairwise_haversine_par_into(pts: &[LngLat], output: &mut [f64]) {
-    assert!(output.len() >= pts.len().saturating_sub(1), 
-           "Output buffer too small: need {}, got {}", 
-           pts.len().saturating_sub(1), output.len());
-    
+    assert!(
+        output.len() >= pts.len().saturating_sub(1),
+        "Output buffer too small: need {}, got {}",
+        pts.len().saturating_sub(1),
+        output.len()
+    );
+
     let windows: Vec<_> = pts.windows(2).collect();
     output[..pts.len().saturating_sub(1)]
         .par_iter_mut()
@@ -201,10 +213,13 @@ pub fn pairwise_haversine_par_into(pts: &[LngLat], output: &mut [f64]) {
 }
 
 pub fn distances_to_point_into(points: &[LngLat], target: LngLat, output: &mut [f64]) {
-    assert!(output.len() >= points.len(), 
-           "Output buffer too small: need {}, got {}", 
-           points.len(), output.len());
-    
+    assert!(
+        output.len() >= points.len(),
+        "Output buffer too small: need {}, got {}",
+        points.len(),
+        output.len()
+    );
+
     for (i, &point) in points.iter().enumerate() {
         output[i] = geodesic::haversine(point, target);
     }
@@ -212,10 +227,13 @@ pub fn distances_to_point_into(points: &[LngLat], target: LngLat, output: &mut [
 
 #[cfg(feature = "batch")]
 pub fn distances_to_point_par_into(points: &[LngLat], target: LngLat, output: &mut [f64]) {
-    assert!(output.len() >= points.len(), 
-           "Output buffer too small: need {}, got {}", 
-           points.len(), output.len());
-    
+    assert!(
+        output.len() >= points.len(),
+        "Output buffer too small: need {}, got {}",
+        points.len(),
+        output.len()
+    );
+
     output[..points.len()]
         .par_iter_mut()
         .zip(points.par_iter())
@@ -225,11 +243,18 @@ pub fn distances_to_point_par_into(points: &[LngLat], target: LngLat, output: &m
 }
 
 #[cfg(feature = "vincenty")]
-pub fn distances_to_point_vincenty_into(points: &[LngLat], target: LngLat, output: &mut [f64]) -> Result<(), geodesic::VincentyError> {
-    assert!(output.len() >= points.len(), 
-           "Output buffer too small: need {}, got {}", 
-           points.len(), output.len());
-    
+pub fn distances_to_point_vincenty_into(
+    points: &[LngLat],
+    target: LngLat,
+    output: &mut [f64],
+) -> Result<(), geodesic::VincentyError> {
+    assert!(
+        output.len() >= points.len(),
+        "Output buffer too small: need {}, got {}",
+        points.len(),
+        output.len()
+    );
+
     for (i, &point) in points.iter().enumerate() {
         output[i] = geodesic::vincenty_distance_m(point, target)?;
     }
@@ -237,17 +262,25 @@ pub fn distances_to_point_vincenty_into(points: &[LngLat], target: LngLat, outpu
 }
 
 #[cfg(all(feature = "batch", feature = "vincenty"))]
-pub fn distances_to_point_vincenty_par_into(points: &[LngLat], target: LngLat, output: &mut [f64]) -> Result<(), geodesic::VincentyError> {
-    assert!(output.len() >= points.len(), 
-           "Output buffer too small: need {}, got {}", 
-           points.len(), output.len());
-    
+pub fn distances_to_point_vincenty_par_into(
+    points: &[LngLat],
+    target: LngLat,
+    output: &mut [f64],
+) -> Result<(), geodesic::VincentyError> {
+    assert!(
+        output.len() >= points.len(),
+        "Output buffer too small: need {}, got {}",
+        points.len(),
+        output.len()
+    );
+
     // For Vincenty, we need to handle errors properly, so we can't use par_iter_mut easily
     // We'll collect Results first, then handle the error
-    let results: Result<Vec<_>, _> = points.par_iter()
+    let results: Result<Vec<_>, _> = points
+        .par_iter()
         .map(|&point| geodesic::vincenty_distance_m(point, target))
         .collect();
-    
+
     match results {
         Ok(distances) => {
             output[..points.len()].copy_from_slice(&distances);
@@ -277,7 +310,7 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let distances: Vec<f64> = pairwise_haversine(&pts).collect();
         assert_eq!(distances.len(), 2);
         assert!(distances[0] > 110000.0 && distances[0] < 112000.0); // ~1° longitude at equator
@@ -291,7 +324,7 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let total = path_length_haversine(&pts);
         assert!(total > 220000.0 && total < 224000.0); // Sum of two ~111km segments
     }
@@ -304,7 +337,7 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let total = path_length_vincenty_m(&pts).unwrap();
         assert!(total > 220000.0 && total < 224000.0); // Sum of two ~111km segments
     }
@@ -317,12 +350,12 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let distances = pairwise_haversine_par(&pts);
         assert_eq!(distances.len(), 2);
         assert!(distances[0] > 110000.0 && distances[0] < 112000.0);
         assert!(distances[1] > 110000.0 && distances[1] < 112000.0);
-        
+
         let serial_distances: Vec<f64> = pairwise_haversine(&pts).collect();
         assert_eq!(distances, serial_distances);
     }
@@ -335,10 +368,10 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let total_par = path_length_haversine_par(&pts);
         let total_serial = path_length_haversine(&pts);
-        
+
         assert!((total_par - total_serial).abs() < 1e-6);
         assert!(total_par > 220000.0 && total_par < 224000.0);
     }
@@ -352,10 +385,10 @@ mod tests {
             LngLat::new_deg(0.0, 1.0),
         ];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let distances = distances_to_point_par(&points, target);
         assert_eq!(distances.len(), 3);
-        
+
         for (i, &distance) in distances.iter().enumerate() {
             let expected = geodesic::haversine(points[i], target);
             assert!((distance - expected).abs() < 1e-6);
@@ -371,10 +404,10 @@ mod tests {
             LngLat::new_deg(0.0, 1.0),
         ];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let distances = distances_to_point_vincenty_par(&points, target).unwrap();
         assert_eq!(distances.len(), 3);
-        
+
         for (i, &distance) in distances.iter().enumerate() {
             let expected = geodesic::vincenty_distance_m(points[i], target).unwrap();
             assert!((distance - expected).abs() < 1e-6);
@@ -388,13 +421,13 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let mut output = vec![0.0; 2];
         pairwise_haversine_into(&pts, &mut output);
-        
+
         let expected: Vec<f64> = pairwise_haversine(&pts).collect();
         assert_eq!(output, expected);
-        
+
         assert!(output[0] > 110000.0 && output[0] < 112000.0);
         assert!(output[1] > 110000.0 && output[1] < 112000.0);
     }
@@ -419,13 +452,13 @@ mod tests {
             LngLat::new_deg(1.0, 0.0),
             LngLat::new_deg(1.0, 1.0),
         ];
-        
+
         let mut output_par = vec![0.0; 2];
         let mut output_serial = vec![0.0; 2];
-        
+
         pairwise_haversine_par_into(&pts, &mut output_par);
         pairwise_haversine_into(&pts, &mut output_serial);
-        
+
         assert_eq!(output_par, output_serial);
     }
 
@@ -437,10 +470,10 @@ mod tests {
             LngLat::new_deg(0.0, 1.0),
         ];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let mut output = vec![0.0; 3];
         distances_to_point_into(&points, target, &mut output);
-        
+
         for (i, &distance) in output.iter().enumerate() {
             let expected = geodesic::haversine(points[i], target);
             assert!((distance - expected).abs() < 1e-6);
@@ -456,13 +489,13 @@ mod tests {
             LngLat::new_deg(0.0, 1.0),
         ];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let mut output_par = vec![0.0; 3];
         let mut output_serial = vec![0.0; 3];
-        
+
         distances_to_point_par_into(&points, target, &mut output_par);
         distances_to_point_into(&points, target, &mut output_serial);
-        
+
         for (par, serial) in output_par.iter().zip(output_serial.iter()) {
             assert!((par - serial).abs() < 1e-6);
         }
@@ -477,10 +510,10 @@ mod tests {
             LngLat::new_deg(0.0, 1.0),
         ];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let mut output = vec![0.0; 3];
         distances_to_point_vincenty_into(&points, target, &mut output).unwrap();
-        
+
         for (i, &distance) in output.iter().enumerate() {
             let expected = geodesic::vincenty_distance_m(points[i], target).unwrap();
             assert!((distance - expected).abs() < 1e-6);
@@ -496,13 +529,13 @@ mod tests {
             LngLat::new_deg(0.0, 1.0),
         ];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let mut output_par = vec![0.0; 3];
         let mut output_serial = vec![0.0; 3];
-        
+
         distances_to_point_vincenty_par_into(&points, target, &mut output_par).unwrap();
         distances_to_point_vincenty_into(&points, target, &mut output_serial).unwrap();
-        
+
         for (par, serial) in output_par.iter().zip(output_serial.iter()) {
             assert!((par - serial).abs() < 1e-6);
         }
@@ -512,14 +545,14 @@ mod tests {
     fn test_into_functions_with_larger_buffers() {
         let points = [LngLat::new_deg(0.0, 0.0), LngLat::new_deg(1.0, 0.0)];
         let target = LngLat::new_deg(0.5, 0.5);
-        
+
         let mut output = vec![f64::NAN; 5]; // Larger than needed
         distances_to_point_into(&points, target, &mut output);
-        
+
         assert!(!output[0].is_nan());
         assert!(!output[1].is_nan());
         assert!(output[2].is_nan()); // Unchanged
-        assert!(output[3].is_nan()); // Unchanged  
+        assert!(output[3].is_nan()); // Unchanged
         assert!(output[4].is_nan()); // Unchanged
     }
 }
