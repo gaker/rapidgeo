@@ -64,10 +64,10 @@ pub mod geo {
         }
     }
 
-    pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
+    pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
         let m = PyModule::new(py, "geo")?;
-        m.add_function(wrap_pyfunction!(haversine, m)?)?;
-        m.add_function(wrap_pyfunction!(vincenty_distance, m)?)?;
+        m.add_function(wrap_pyfunction!(haversine, &m)?)?;
+        m.add_function(wrap_pyfunction!(vincenty_distance, &m)?)?;
         Ok(m)
     }
 }
@@ -98,12 +98,12 @@ pub mod euclid_mod {
         )
     }
 
-    pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
+    pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
         let m = PyModule::new(py, "euclid")?;
-        m.add_function(wrap_pyfunction!(euclid, m)?)?;
-        m.add_function(wrap_pyfunction!(squared, m)?)?;
-        m.add_function(wrap_pyfunction!(point_to_segment, m)?)?;
-        m.add_function(wrap_pyfunction!(point_to_segment_squared, m)?)?;
+        m.add_function(wrap_pyfunction!(euclid, &m)?)?;
+        m.add_function(wrap_pyfunction!(squared, &m)?)?;
+        m.add_function(wrap_pyfunction!(point_to_segment, &m)?)?;
+        m.add_function(wrap_pyfunction!(point_to_segment_squared, &m)?)?;
         Ok(m)
     }
 }
@@ -112,7 +112,7 @@ pub mod batch_mod {
     use super::*;
 
     #[pyfunction]
-    pub fn pairwise_haversine(py: Python, points: &PyList) -> PyResult<Vec<f64>> {
+    pub fn pairwise_haversine(py: Python, points: &Bound<'_, PyList>) -> PyResult<Vec<f64>> {
         let core_pts: Vec<CoreLngLat> = points
             .iter()
             .map(|item| {
@@ -121,7 +121,7 @@ pub mod batch_mod {
             })
             .collect::<PyResult<Vec<_>>>()?;
 
-        Ok(py.allow_threads(move || {
+        Ok(py.detach(move || {
             core_pts
                 .windows(2)
                 .map(|pair| map_distance::geodesic::haversine(pair[0], pair[1]))
@@ -130,7 +130,7 @@ pub mod batch_mod {
     }
 
     #[pyfunction]
-    pub fn path_length_haversine(py: Python, points: &PyList) -> PyResult<f64> {
+    pub fn path_length_haversine(py: Python, points: &Bound<'_, PyList>) -> PyResult<f64> {
         let core_pts: Vec<CoreLngLat> = points
             .iter()
             .map(|item| {
@@ -139,7 +139,7 @@ pub mod batch_mod {
             })
             .collect::<PyResult<Vec<_>>>()?;
 
-        Ok(py.allow_threads(move || {
+        Ok(py.detach(move || {
             core_pts
                 .windows(2)
                 .map(|pair| map_distance::geodesic::haversine(pair[0], pair[1]))
@@ -149,7 +149,7 @@ pub mod batch_mod {
 
     #[cfg(feature = "vincenty")]
     #[pyfunction]
-    pub fn path_length_vincenty(py: Python, points: &PyList) -> PyResult<f64> {
+    pub fn path_length_vincenty(py: Python, points: &Bound<'_, PyList>) -> PyResult<f64> {
         let core_pts: Vec<CoreLngLat> = points
             .iter()
             .map(|item| {
@@ -158,7 +158,7 @@ pub mod batch_mod {
             })
             .collect::<PyResult<Vec<_>>>()?;
 
-        py.allow_threads(move || -> PyResult<f64> {
+        py.detach(move || -> PyResult<f64> {
             let mut total = 0.0;
             for pair in core_pts.windows(2) {
                 match map_distance::geodesic::vincenty_distance_m(pair[0], pair[1]) {
@@ -174,29 +174,29 @@ pub mod batch_mod {
         })
     }
 
-    pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
+    pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
         let m = PyModule::new(py, "batch")?;
-        m.add_function(wrap_pyfunction!(pairwise_haversine, m)?)?;
-        m.add_function(wrap_pyfunction!(path_length_haversine, m)?)?;
+        m.add_function(wrap_pyfunction!(pairwise_haversine, &m)?)?;
+        m.add_function(wrap_pyfunction!(path_length_haversine, &m)?)?;
 
         #[cfg(feature = "vincenty")]
-        m.add_function(wrap_pyfunction!(path_length_vincenty, m)?)?;
+        m.add_function(wrap_pyfunction!(path_length_vincenty, &m)?)?;
 
         Ok(m)
     }
 }
 
-pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
+pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     let m = PyModule::new(py, "distance")?;
     m.add_class::<LngLat>()?;
-    m.add_submodule(geo::create_module(py)?)?;
-    m.add_submodule(euclid_mod::create_module(py)?)?;
-    m.add_submodule(batch_mod::create_module(py)?)?;
+    m.add_submodule(&geo::create_module(py)?)?;
+    m.add_submodule(&euclid_mod::create_module(py)?)?;
+    m.add_submodule(&batch_mod::create_module(py)?)?;
 
     #[cfg(feature = "numpy")]
     {
         use crate::numpy_batch;
-        m.add_submodule(numpy_batch::create_module(py)?)?;
+        m.add_submodule(&numpy_batch::create_module(py)?)?;
     }
 
     Ok(m)

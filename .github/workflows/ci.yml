@@ -70,26 +70,34 @@ jobs:
     - name: Install maturin
       run: pip install maturin[patchelf]
     
+    - name: Create virtual environment
+      run: python -m venv .venv
     
     - name: Build and install rapidgeo (base)
       run: |
+        source .venv/bin/activate
         cd rapidgeo-py
         maturin develop
     
     - name: Test rapidgeo base package
       run: |
+        source .venv/bin/activate
         cd rapidgeo-py
         python -c "from rapidgeo.distance import LngLat; print('Base package works')"
     
     - name: Install numpy
-      run: pip install numpy
+      run: |
+        source .venv/bin/activate
+        pip install numpy
     
     - name: Build and install rapidgeo with numpy
       run: |
+        source .venv/bin/activate
         cd rapidgeo-py
         maturin develop --features numpy
     
     - name: Test rapidgeo with numpy
       run: |
+        source .venv/bin/activate
         cd rapidgeo-py
         python -c "import rapidgeo; import numpy; print('Numpy integration works')"

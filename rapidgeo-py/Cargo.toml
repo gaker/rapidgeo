@@ -21,11 +21,11 @@ batch = ["rayon", "map-distance/batch"]
 numpy = ["dep:numpy"]
 
 [dependencies]
-pyo3 = { version = "0.20", features = ["extension-module"] }
-numpy = { version = "0.20", optional = true }
-rayon = { version = "1.8", optional = true }
+pyo3 = { version = "0.26", features = ["extension-module"] }
+numpy = { version = "0.26", optional = true }
+rayon = { version = "1.11", optional = true }
 map-distance = { path = "../map-distance", features = ["batch"] }
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 

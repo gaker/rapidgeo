@@ -1,11 +1,8 @@
-#[cfg(feature = "numpy")]
 use map_distance::{geodesic, LngLat as CoreLngLat};
-#[cfg(feature = "numpy")]
 use numpy::{PyArray1, PyReadonlyArray1};
-#[cfg(feature = "numpy")]
 use pyo3::prelude::*;
+use rayon::prelude::*;
 
-#[cfg(feature = "numpy")]
 #[pyfunction]
 pub fn pairwise_haversine_numpy(
     py: Python,
@@ -22,7 +19,7 @@ pub fn pairwise_haversine_numpy(
     }
 
     if lng.len() < 2 {
-        return Ok(PyArray1::from_vec(py, vec![]).to_owned());
+        return Ok(PyArray1::from_vec(py, vec![]).into());
     }
 
     let core_pts: Vec<CoreLngLat> = lng
@@ -31,14 +28,14 @@ pub fn pairwise_haversine_numpy(
         .map(|(&lng, &lat)| CoreLngLat::new_deg(lng, lat))
         .collect();
 
-    let result = py.allow_threads(move || {
+    let result = py.detach(move || {
         core_pts
-            .windows(2)
+            .par_windows(2)
             .map(|pair| geodesic::haversine(pair[0], pair[1]))
             .collect::<Vec<f64>>()
     });
 
-    Ok(PyArray1::from_vec(py, result).to_owned())
+    Ok(PyArray1::from_vec(py, result).into())
 }
 
 #[cfg(feature = "numpy")]
@@ -67,14 +64,14 @@ pub fn distances_to_point_numpy(
 
     let target_core = CoreLngLat::new_deg(target_lng, target_lat);
 
-    let result = py.allow_threads(move || {
+    let result = py.detach(move || {
         core_pts
-            .iter()
+            .par_iter()
             .map(|&point| geodesic::haversine(point, target_core))
             .collect::<Vec<f64>>()
     });
 
-    Ok(PyArray1::from_vec(py, result).to_owned())
+    Ok(PyArray1::from_vec(py, result).into())
 }
 
 #[cfg(feature = "numpy")]
@@ -103,19 +100,19 @@ pub fn path_length_haversine_numpy(
         .map(|(&lng, &lat)| CoreLngLat::new_deg(lng, lat))
         .collect();
 
-    Ok(py.allow_threads(move || {
+    Ok(py.detach(move || {
         core_pts
-            .windows(2)
+            .par_windows(2)
             .map(|pair| geodesic::haversine(pair[0], pair[1]))
             .sum()
     }))
 }
 
 #[cfg(feature = "numpy")]
-pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
+pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     let m = PyModule::new(py, "numpy")?;
-    m.add_function(wrap_pyfunction!(pairwise_haversine_numpy, m)?)?;
-    m.add_function(wrap_pyfunction!(distances_to_point_numpy, m)?)?;
-    m.add_function(wrap_pyfunction!(path_length_haversine_numpy, m)?)?;
+    m.add_function(wrap_pyfunction!(pairwise_haversine_numpy, &m)?)?;
+    m.add_function(wrap_pyfunction!(distances_to_point_numpy, &m)?)?;
+    m.add_function(wrap_pyfunction!(path_length_haversine_numpy, &m)?)?;
     Ok(m)
 }
