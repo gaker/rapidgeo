@@ -112,7 +112,7 @@ pub fn path_length_haversine_numpy(
 }
 
 #[cfg(feature = "numpy")]
-pub fn create_module(py: Python) -> PyResult<&PyModule> {
+pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
     let m = PyModule::new(py, "numpy")?;
     m.add_function(wrap_pyfunction!(pairwise_haversine_numpy, m)?)?;
     m.add_function(wrap_pyfunction!(distances_to_point_numpy, m)?)?;

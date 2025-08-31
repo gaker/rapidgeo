@@ -64,7 +64,7 @@ pub mod geo {
         }
     }
 
-    pub fn create_module(py: Python) -> PyResult<&PyModule> {
+    pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
         let m = PyModule::new(py, "geo")?;
         m.add_function(wrap_pyfunction!(haversine, m)?)?;
         m.add_function(wrap_pyfunction!(vincenty_distance, m)?)?;
@@ -98,7 +98,7 @@ pub mod euclid_mod {
         )
     }
 
-    pub fn create_module(py: Python) -> PyResult<&PyModule> {
+    pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
         let m = PyModule::new(py, "euclid")?;
         m.add_function(wrap_pyfunction!(euclid, m)?)?;
         m.add_function(wrap_pyfunction!(squared, m)?)?;
@@ -174,7 +174,7 @@ pub mod batch_mod {
         })
     }
 
-    pub fn create_module(py: Python) -> PyResult<&PyModule> {
+    pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
         let m = PyModule::new(py, "batch")?;
         m.add_function(wrap_pyfunction!(pairwise_haversine, m)?)?;
         m.add_function(wrap_pyfunction!(path_length_haversine, m)?)?;
@@ -186,7 +186,7 @@ pub mod batch_mod {
     }
 }
 
-pub fn create_module(py: Python) -> PyResult<&PyModule> {
+pub fn create_module(py: Python<'_>) -> PyResult<&PyModule> {
     let m = PyModule::new(py, "distance")?;
     m.add_class::<LngLat>()?;
     m.add_submodule(geo::create_module(py)?)?;
