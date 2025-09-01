@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "rapidgeo-distance",
     "rapidgeo-simplify",
+    "rapidgeo-polyline",
     "rapidgeo-py",
 ]
 

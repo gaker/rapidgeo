@@ -1,0 +1,31 @@
+[package]
+name = "rapidgeo-polyline"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Fast Google Polyline Algorithm encoding/decoding for geographic coordinates"
+keywords = ["polyline", "encoding", "google", "maps", "geometry"]
+categories = ["science::geo", "encoding"]
+documentation = "https://docs.rs/rapidgeo-polyline"
+
+[features]
+default = []
+numpy = []
+batch = ["rayon"]
+
+[dependencies]
+rapidgeo-distance = { path = "../rapidgeo-distance" }
+rapidgeo-simplify = { path = "../rapidgeo-simplify" }
+rayon = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["html_reports"] }
+fastrand = "2.0"
+
+[[bench]]
+name = "performance_benchmarks"
+harness = false
+

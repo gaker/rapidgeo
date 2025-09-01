@@ -37,6 +37,6 @@ Issues = "https://github.com/gaker/rapidgo/issues"
 numpy = ["numpy>=1.19.0"]
 
 [tool.maturin]
-features = ["pyo3/extension-module"]
+features = ["pyo3/extension-module", "numpy"]
 python-source = "python"
 module-name = "rapidgeo._rapidgeo"
