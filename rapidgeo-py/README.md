@@ -53,7 +53,6 @@ point = LngLat.new_deg(-122.4194, 37.7749)  # lng first, lat second
 # point = LngLat.new_deg(37.7749, -122.4194)  # lat, lng - WRONG
 ```
 
-## Algorithm Selection
 
 ## License
 
