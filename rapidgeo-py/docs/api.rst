@@ -16,6 +16,7 @@ Core distance calculation module.
 
 .. automodule:: rapidgeo.distance
    :members:
+   :no-index:
 
 rapidgeo.distance.geo
 ~~~~~~~~~~~~~~~~~~~~~
@@ -63,4 +64,28 @@ rapidgeo.simplify.batch
 Batch simplification operations.
 
 .. automodule:: rapidgeo.simplify.batch
+   :members:
+
+rapidgeo.similarity
+-------------------
+
+Curve similarity measures (Fréchet and Hausdorff distance).
+
+.. automodule:: rapidgeo.similarity
+   :members:
+
+rapidgeo.similarity.frechet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Discrete Fréchet distance implementation.
+
+.. automodule:: rapidgeo.similarity.frechet
+   :members:
+
+rapidgeo.similarity.hausdorff
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Hausdorff distance implementation.
+
+.. automodule:: rapidgeo.similarity.hausdorff
    :members:

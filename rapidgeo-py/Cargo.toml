@@ -28,6 +28,7 @@ rayon = { version = "1.11", optional = true }
 rapidgeo-distance = { path = "../rapidgeo-distance", features = ["batch"] }
 rapidgeo-simplify = { path = "../rapidgeo-simplify", features = ["batch"] }
 rapidgeo-polyline = { path = "../rapidgeo-polyline", features = ["batch"] }
+rapidgeo-similarity = { path = "../rapidgeo-similarity", features = ["batch"] }
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }

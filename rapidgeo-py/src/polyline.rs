@@ -75,6 +75,34 @@ fn py_decode(polyline: &str, precision: u8) -> PyResult<Vec<LngLat>> {
         .collect())
 }
 
+/// Encode coordinates with line simplification into a Google Polyline string.
+///
+/// Combines Douglas-Peucker line simplification with polyline encoding in one step.
+/// This reduces coordinate count while maintaining essential shape, then compresses
+/// the result using Google's polyline algorithm.
+///
+/// Args:
+///     coordinates (List[LngLat]): Sequence of coordinates to simplify and encode
+///     tolerance_m (float): Simplification tolerance in meters. Higher values = more simplification.
+///     method (str, optional): Distance calculation method. Defaults to "great_circle".
+///         - "great_circle": Accurate geographic distance (recommended)
+///         - "planar": Fast approximation for small areas  
+///         - "euclidean": Fastest, treat coordinates as flat plane
+///     precision (int, optional): Decimal places of precision (1-11). Defaults to 5.
+///
+/// Returns:
+///     str: Simplified and encoded polyline string
+///
+/// Raises:
+///     ValueError: If tolerance is negative, method is unknown, or precision is invalid
+///
+/// Examples:
+///     >>> from rapidgeo import LngLat
+///     >>> from rapidgeo.polyline import encode_simplified
+///     >>> # GPS track with noise - simplify to 10 meter tolerance
+///     >>> track = [LngLat(-120.2, 38.5), LngLat(-120.201, 38.501), LngLat(-120.95, 40.7)]
+///     >>> simplified = encode_simplified(track, tolerance_m=10.0)
+///     >>> # Result has fewer points than original track
 #[pyfunction]
 #[pyo3(signature = (coordinates, tolerance_m, method = "great_circle", precision = 5))]
 fn py_encode_simplified(
@@ -104,6 +132,33 @@ fn py_encode_simplified(
         .map_err(|e| PyValueError::new_err(format!("Encoding error: {}", e)))
 }
 
+/// Simplify an already-encoded Google Polyline string.
+///
+/// Decodes a polyline string, applies Douglas-Peucker simplification, then re-encodes it.
+/// Useful when you have polyline data from external sources that needs simplification
+/// without converting back to coordinate arrays.
+///
+/// Args:
+///     polyline (str): Encoded polyline string to simplify
+///     tolerance_m (float): Simplification tolerance in meters. Higher values = more simplification.
+///     method (str, optional): Distance calculation method. Defaults to "great_circle".
+///         - "great_circle": Accurate geographic distance (recommended)
+///         - "planar": Fast approximation for small areas
+///         - "euclidean": Fastest, treat coordinates as flat plane
+///     precision (int, optional): Decimal places of precision (1-11). Defaults to 5.
+///
+/// Returns:
+///     str: Simplified polyline string with same precision as input
+///
+/// Raises:
+///     ValueError: If polyline is malformed, tolerance is negative, method is unknown, or precision is invalid
+///
+/// Examples:
+///     >>> from rapidgeo.polyline import simplify_polyline
+///     >>> # Simplify detailed polyline from mapping API to reduce size
+///     >>> detailed = '_p~iF~ps|U_ulLnnqC_c~vLvxq`@'
+///     >>> simplified = simplify_polyline(detailed, tolerance_m=50.0)
+///     >>> # Result string is shorter with fewer encoded points
 #[pyfunction]
 #[pyo3(signature = (polyline, tolerance_m, method = "great_circle", precision = 5))]
 fn py_simplify_polyline(
@@ -128,6 +183,33 @@ fn py_simplify_polyline(
         .map_err(|e| PyValueError::new_err(format!("Simplification error: {}", e)))
 }
 
+/// Encode multiple sequences of coordinates into Google Polyline Algorithm strings.
+///
+/// Batch processing version of encode() that efficiently handles multiple coordinate sequences
+/// in parallel. Useful for encoding many routes, tracks, or boundaries at once.
+///
+/// Args:
+///     coordinates_list (List[List[LngLat]]): List of coordinate sequences to encode
+///     precision (int, optional): Decimal places of precision (1-11). Defaults to 5.
+///         - 5: ~1 meter accuracy (standard)
+///         - 6: ~10 centimeter accuracy (high precision)
+///
+/// Returns:
+///     List[str]: List of encoded polyline strings, one for each input sequence
+///
+/// Raises:
+///     ValueError: If precision is invalid or any coordinates cause overflow
+///
+/// Examples:
+///     >>> from rapidgeo import LngLat
+///     >>> from rapidgeo.polyline import encode_batch
+///     >>> routes = [
+///     ...     [LngLat(-120.2, 38.5), LngLat(-120.95, 40.7)],
+///     ...     [LngLat(-121.0, 39.0), LngLat(-122.0, 40.0)]
+///     ... ]
+///     >>> polylines = encode_batch(routes, 5)
+///     >>> len(polylines)
+///     2
 #[cfg(feature = "batch")]
 #[pyfunction]
 #[pyo3(signature = (coordinates_list, precision = 5))]
@@ -146,6 +228,33 @@ fn py_encode_batch(coordinates_list: Vec<Vec<LngLat>>, precision: u8) -> PyResul
         .map_err(|e| PyValueError::new_err(format!("Batch encoding error: {}", e)))
 }
 
+/// Decode multiple Google Polyline Algorithm strings back into coordinate sequences.
+///
+/// Batch processing version of decode() that efficiently handles multiple polyline strings
+/// in parallel. Useful for decoding many encoded routes, tracks, or boundaries at once.
+///
+/// Args:
+///     polylines (List[str]): List of encoded polyline strings to decode
+///     precision (int, optional): Decimal places used during encoding. Defaults to 5.
+///         Must match the precision used when the polylines were originally encoded.
+///
+/// Returns:
+///     List[List[LngLat]]: List of decoded coordinate sequences, one for each input polyline
+///
+/// Raises:
+///     ValueError: If any polyline is malformed or precision is invalid
+///
+/// Examples:
+///     >>> from rapidgeo.polyline import decode_batch
+///     >>> polylines = [
+///     ...     '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
+///     ...     'u{~vFvyys@fS]'
+///     ... ]
+///     >>> routes = decode_batch(polylines, 5)
+///     >>> len(routes)
+///     2
+///     >>> len(routes[0])  # Number of points in first route
+///     3
 #[cfg(feature = "batch")]
 #[pyfunction]
 #[pyo3(signature = (polylines, precision = 5))]
@@ -164,6 +273,41 @@ fn py_decode_batch(polylines: Vec<String>, precision: u8) -> PyResult<Vec<Vec<Ln
         .collect())
 }
 
+/// Encode multiple coordinate sequences with line simplification into Google Polyline strings.
+///
+/// Batch processing version of encode_simplified() that efficiently handles multiple coordinate
+/// sequences in parallel. Combines Douglas-Peucker line simplification with polyline encoding
+/// for each sequence. Useful for processing many GPS tracks, routes, or boundaries with
+/// noise reduction.
+///
+/// Args:
+///     coordinates_list (List[List[LngLat]]): List of coordinate sequences to simplify and encode
+///     tolerance_m (float): Simplification tolerance in meters. Higher values = more simplification.
+///         Applied uniformly to all sequences in the batch.
+///     method (str, optional): Distance calculation method. Defaults to "great_circle".
+///         - "great_circle": Accurate geographic distance (recommended)
+///         - "planar": Fast approximation for small areas  
+///         - "euclidean": Fastest, treat coordinates as flat plane
+///     precision (int, optional): Decimal places of precision (1-11). Defaults to 5.
+///
+/// Returns:
+///     List[str]: List of simplified and encoded polyline strings, one for each input sequence
+///
+/// Raises:
+///     ValueError: If tolerance is negative, method is unknown, or precision is invalid
+///
+/// Examples:
+///     >>> from rapidgeo import LngLat
+///     >>> from rapidgeo.polyline import encode_simplified_batch
+///     >>> # Multiple GPS tracks with noise - simplify all to 10 meter tolerance
+///     >>> tracks = [
+///     ...     [LngLat(-120.2, 38.5), LngLat(-120.201, 38.501), LngLat(-120.95, 40.7)],
+///     ...     [LngLat(-121.0, 39.0), LngLat(-121.001, 39.001), LngLat(-122.0, 40.0)]
+///     ... ]
+///     >>> simplified = encode_simplified_batch(tracks, tolerance_m=10.0)
+///     >>> len(simplified)
+///     2
+///     >>> # Each result has fewer points than original tracks
 #[cfg(feature = "batch")]
 #[pyfunction]
 #[pyo3(signature = (coordinates_list, tolerance_m, method = "great_circle", precision = 5))]

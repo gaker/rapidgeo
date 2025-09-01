@@ -1,5 +1,5 @@
 Distance Calculations
-====================
+=====================
 
 The ``rapidgeo.distance`` module provides fast geographic and planar distance calculations with multiple algorithms optimized for different use cases.
 
@@ -8,6 +8,7 @@ Core Types
 
 .. autoclass:: rapidgeo.distance.LngLat
    :members:
+   :no-index:
 
 The ``LngLat`` type represents a coordinate pair in longitude, latitude order. All rapidgeo functions use this consistent ordering.
 
@@ -31,6 +32,7 @@ Geographic distances calculate the actual distance between points on Earth's sur
 
 .. automodule:: rapidgeo.distance.geo
    :members:
+   :no-index:
 
 **Algorithm Selection:**
 
@@ -62,6 +64,7 @@ Planar distances treat coordinates as points on a flat plane, ignoring Earth's c
 
 .. automodule:: rapidgeo.distance.euclid
    :members:
+   :no-index:
 
 **Use Cases:**
 
@@ -99,6 +102,7 @@ Batch operations process multiple coordinates efficiently.
 
 .. automodule:: rapidgeo.distance.batch
    :members:
+   :no-index:
 
 Example:
 

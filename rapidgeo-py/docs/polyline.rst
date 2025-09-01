@@ -10,6 +10,7 @@ Core Functions
 
 .. automodule:: rapidgeo.polyline
    :members:
+   :no-index:
 
 Basic Usage
 -----------

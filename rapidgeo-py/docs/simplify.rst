@@ -1,5 +1,5 @@
 Line Simplification
-==================
+===================
 
 The ``rapidgeo.simplify`` module provides Douglas-Peucker line simplification with multiple distance calculation methods.
 
@@ -10,6 +10,7 @@ Core Functions
 
 .. automodule:: rapidgeo.simplify
    :members:
+   :no-index:
 
 Basic Usage
 -----------
@@ -71,6 +72,7 @@ Process multiple polylines efficiently:
 
 .. automodule:: rapidgeo.simplify.batch
    :members:
+   :no-index:
 
 .. code-block:: python
 

@@ -1,0 +1,32 @@
+[package]
+name = "rapidgeo-similarity"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Fast trajectory similarity measures including Fréchet and Hausdorff distance"
+keywords = ["similarity", "frechet", "hausdorff", "trajectory", "geometry"]
+categories = ["algorithms", "science::geo"]
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+default = []
+batch = ["rayon"]
+
+[dependencies]
+rapidgeo-distance = { path = "../rapidgeo-distance" }
+rayon = { workspace = true, optional = true }
+
+[dev-dependencies]
+criterion = { workspace = true, features = ["html_reports"] }
+proptest = { workspace = true }
+
+[[bench]]
+name = "similarity_benchmarks"
+harness = false

@@ -4,10 +4,12 @@ mod distance;
 #[cfg(feature = "numpy")]
 mod numpy_batch;
 mod polyline;
+mod similarity;
 mod simplify;
 
 use distance::{create_module as create_distance_module, LngLat};
 use polyline::create_module as create_polyline_module;
+use similarity::create_module as create_similarity_module;
 use simplify::create_module as create_simplify_module;
 
 #[pymodule]
@@ -21,6 +23,7 @@ fn _rapidgeo(py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_submodule(&create_distance_module(py)?)?;
     m.add_submodule(&create_simplify_module(py)?)?;
     m.add_submodule(&create_polyline_module(py)?)?;
+    m.add_submodule(&create_similarity_module(py)?)?;
 
     Ok(())
 }

@@ -53,6 +53,16 @@ autodoc_default_options = {
     'exclude-members': '__weakref__'
 }
 
+# Suppress specific warnings
+suppress_warnings = [
+    'ref.python',  # Suppress cross-reference warnings for Python objects
+    'toc.not_included',  # Suppress toctree not included warnings
+]
+
+# Autodoc type hints configuration
+autodoc_typehints = 'description'
+autodoc_typehints_description_target = 'documented'
+
 # Autosummary configuration
 autosummary_generate = True
 

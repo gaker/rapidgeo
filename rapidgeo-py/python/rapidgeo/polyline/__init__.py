@@ -7,7 +7,7 @@ from .._rapidgeo import polyline as _polyline
 # Export all the polyline functions
 encode = _polyline.py_encode
 decode = _polyline.py_decode
-encode_simplified = _polyline.py_encode_simplified  
+encode_simplified = _polyline.py_encode_simplified
 simplify_polyline = _polyline.py_simplify_polyline
 
 try:
@@ -21,7 +21,7 @@ except AttributeError:
 
 __all__ = [
     "encode",
-    "decode", 
+    "decode",
     "encode_simplified",
     "simplify_polyline",
     "encode_batch",
