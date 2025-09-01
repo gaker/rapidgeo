@@ -7,8 +7,13 @@ import os
 import sys
 from datetime import datetime
 
-# Add the Python source to the path for autodoc
-sys.path.insert(0, os.path.abspath('../python'))
+# For Read the Docs: Don't add local path, use installed package
+# For local development: Add path if package not installed
+if 'READTHEDOCS' not in os.environ:
+    try:
+        import rapidgeo
+    except ImportError:
+        sys.path.insert(0, os.path.abspath('../python'))
 
 # Project information
 project = 'rapidgeo'
