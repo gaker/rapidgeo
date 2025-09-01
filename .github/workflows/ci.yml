@@ -37,6 +37,7 @@ jobs:
         if ! command -v cargo-tarpaulin &> /dev/null; then
           cargo install cargo-tarpaulin
         fi
+      shell: bash
 
     - name: Check formatting
       run: cargo fmt --all -- --check
