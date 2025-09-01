@@ -51,6 +51,7 @@ jobs:
         file: ./lcov.info
         fail_ci_if_error: false
         verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }}
     
   test-python:
     name: Test Python (${{ matrix.python-version }}, ${{ matrix.os }})
