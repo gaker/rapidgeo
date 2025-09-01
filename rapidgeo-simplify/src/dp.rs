@@ -1,6 +1,39 @@
+//! Core Douglas-Peucker simplification algorithm implementation.
+//!
+//! This module contains the recursive algorithm that performs the actual
+//! simplification work, independent of the distance calculation method.
+
 use crate::xt::PerpDistance;
 use rapidgeo_distance::LngLat;
 
+/// Simplify a polyline using the Douglas-Peucker algorithm with a custom distance backend.
+///
+/// This is the core implementation that performs the recursive simplification.
+/// It uses a stack-based approach to avoid potential stack overflow with very
+/// large polylines.
+///
+/// # Arguments
+///
+/// * `pts` - Input points to simplify
+/// * `tolerance_m` - Distance threshold in the backend's units
+/// * `backend` - Distance calculation implementation
+/// * `mask` - Output mask indicating which points to keep
+///
+/// # Algorithm Details
+///
+/// The algorithm follows these steps:
+/// 1. Handle edge cases (≤2 points, all identical points)
+/// 2. Mark endpoints as always kept
+/// 3. Use a stack to process line segments recursively:
+///    - Find the point with maximum perpendicular distance to the current segment
+///    - If distance exceeds tolerance, keep the point and add two new segments to process
+///    - Otherwise, discard all points in the current segment
+///
+/// # Performance
+///
+/// - Time: O(n log n) average case, O(n²) worst case
+/// - Space: O(log n) stack depth average, O(n) worst case
+/// - The `#[cfg_attr(test, inline(never))]` prevents inlining during tests for better profiling
 #[cfg_attr(test, inline(never))]
 pub fn simplify_mask<D: PerpDistance>(
     pts: &[LngLat],

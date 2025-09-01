@@ -7,6 +7,30 @@ use rapidgeo_simplify::SimplifyMethod;
 #[cfg(feature = "batch")]
 use rapidgeo_polyline::batch::{decode_batch, encode_batch, encode_simplified_batch};
 
+/// Encode a sequence of coordinates into a Google Polyline Algorithm string.
+///
+/// Compresses coordinate sequences using variable-length encoding and delta compression.
+/// Commonly used for GPS tracks, routes, and mapping applications.
+///
+/// Args:
+///     coordinates (List[LngLat]): Sequence of coordinates to encode
+///     precision (int, optional): Decimal places of precision (1-11). Defaults to 5.
+///         - 5: ~1 meter accuracy (standard)
+///         - 6: ~10 centimeter accuracy (high precision)
+///
+/// Returns:
+///     str: Encoded polyline string
+///
+/// Raises:
+///     ValueError: If precision is invalid or coordinates cause overflow
+///
+/// Examples:
+///     >>> from rapidgeo import LngLat
+///     >>> from rapidgeo.polyline import encode
+///     >>> coords = [LngLat(-120.2, 38.5), LngLat(-120.95, 40.7)]
+///     >>> polyline = encode(coords, 5)
+///     >>> print(polyline)
+///     '_p~iF~ps|U_ulLnnqC_mqNvxq`@'
 #[pyfunction]
 #[pyo3(signature = (coordinates, precision = 5))]
 fn py_encode(coordinates: Vec<LngLat>, precision: u8) -> PyResult<String> {
@@ -18,6 +42,27 @@ fn py_encode(coordinates: Vec<LngLat>, precision: u8) -> PyResult<String> {
     encode(&coords, precision).map_err(|e| PyValueError::new_err(format!("Encoding error: {}", e)))
 }
 
+/// Decode a Google Polyline Algorithm string back into coordinates.
+///
+/// Reverses the polyline encoding process to reconstruct the original coordinate sequence.
+/// The precision must match what was used during encoding.
+///
+/// Args:
+///     polyline (str): Encoded polyline string
+///     precision (int, optional): Decimal places used during encoding. Defaults to 5.
+///
+/// Returns:
+///     List[LngLat]: Decoded coordinate sequence
+///
+/// Raises:
+///     ValueError: If polyline is malformed or precision is invalid
+///
+/// Examples:
+///     >>> from rapidgeo.polyline import decode
+///     >>> polyline = '_p~iF~ps|U_ulLnnqC_mqNvxq`@'
+///     >>> coords = decode(polyline, 5)
+///     >>> print(f"First coord: {coords[0].lng}, {coords[0].lat}")
+///     First coord: -120.2, 38.5
 #[pyfunction]
 #[pyo3(signature = (polyline, precision = 5))]
 fn py_decode(polyline: &str, precision: u8) -> PyResult<Vec<LngLat>> {

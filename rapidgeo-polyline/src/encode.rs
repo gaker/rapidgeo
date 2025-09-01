@@ -38,25 +38,64 @@ fn safe_coordinate_to_int(coord_deg: f64, factor: f64) -> PolylineResult<i64> {
     Ok(scaled.round() as i64)
 }
 
-/// Encodes a sequence of coordinates into a polyline string.
+/// Encodes a sequence of coordinates into a polyline string using [Google's Polyline Algorithm](https://developers.google.com/maps/documentation/utilities/polylinealgorithm).
+///
+/// The algorithm uses delta encoding and variable-length encoding to compress
+/// coordinate sequences. Coordinates are scaled by 10^precision, delta-encoded,
+/// and compressed into printable ASCII characters.
 ///
 /// # Arguments
 ///
-/// * `coordinates` - The sequence of coordinates to encode
-/// * `precision` - Number of decimal places to preserve (typically 5 or 6)
+/// * `coordinates` - Coordinate sequence in longitude, latitude order
+/// * `precision` - Decimal places to preserve (1-11, typically 5 or 6)
+///
+/// # Returns
+///
+/// Returns a polyline string or an error if coordinates are invalid or precision is out of range.
+///
+/// # Errors
+///
+/// - [`PolylineError::InvalidCoordinate`] for NaN, infinite, or out-of-bounds coordinates
+/// - [`PolylineError::InvalidPrecision`] for precision outside 1-11 range
+/// - [`PolylineError::CoordinateOverflow`] for coordinates causing integer overflow
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use rapidgeo_polyline::encode;
 /// use rapidgeo_distance::LngLat;
 ///
+/// // Standard precision 5 (1 meter accuracy)
 /// let coords = vec![
 ///     LngLat::new_deg(-120.2, 38.5),
-///     LngLat::new_deg(-120.95, 35.6),
+///     LngLat::new_deg(-120.95, 40.7),
 /// ];
+/// let encoded = encode(&coords, 5)?;
 ///
-/// let encoded = encode(&coords, 5).unwrap();
+/// // High precision 6 (10 centimeter accuracy)
+/// let precise_coords = vec![
+///     LngLat::new_deg(-122.483696, 37.833818),
+///     LngLat::new_deg(-122.483482, 37.833174),
+/// ];
+/// let precise_encoded = encode(&precise_coords, 6)?;
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
+/// ```
+///
+/// # Google's Test Vector
+///
+/// ```rust
+/// use rapidgeo_polyline::encode;
+/// use rapidgeo_distance::LngLat;
+///
+/// // Google's official test case
+/// let coords = vec![
+///     LngLat::new_deg(-120.2, 38.5),
+///     LngLat::new_deg(-120.95, 40.7),
+///     LngLat::new_deg(-126.453, 43.252),
+/// ];
+/// let encoded = encode(&coords, 5)?;
+/// assert_eq!(encoded, "_p~iF~ps|U_ulLnnqC_mqNvxq`@");
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
 /// ```
 pub fn encode(coordinates: &[LngLat], precision: u8) -> PolylineResult<String> {
     if precision == 0 || precision > 11 {

@@ -10,6 +10,11 @@ description = "Fast Google Polyline Algorithm encoding/decoding for geographic c
 keywords = ["polyline", "encoding", "google", "maps", "geometry"]
 categories = ["science::geo", "encoding"]
 documentation = "https://docs.rs/rapidgeo-polyline"
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []

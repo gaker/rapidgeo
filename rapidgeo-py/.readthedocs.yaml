@@ -1,0 +1,33 @@
+# Read the Docs configuration file for rapidgeo
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+    rust: "1.86"
+  jobs:
+    post_create_environment:
+      # Install maturin for building the Python extension
+      - pip install maturin
+    post_install:
+      # Build the Rust extension
+      - maturin develop --features pyo3/extension-module
+
+python:
+  install:
+    - requirements: docs/requirements.txt
+    - method: pip
+      path: .
+      extra_requirements:
+        - numpy
+
+sphinx:
+  configuration: docs/conf.py
+  fail_on_warning: false
+
+formats:
+  - pdf
+  - epub

@@ -1,8 +1,10 @@
 # rapidgeo-distance
 
 [![Crates.io](https://img.shields.io/crates/v/rapidgeo-distance.svg)](https://crates.io/crates/rapidgeo-distance)
-[![docs.rs](https://docs.rs/rapidgeo-distance/badge.svg)](https://docs.rs/rapidgeo-distance)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![Documentation](https://docs.rs/rapidgeo-distance/badge.svg)](https://docs.rs/rapidgeo-distance)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+[![CI](https://github.com/gaker/rapidgeo/workflows/CI/badge.svg)](https://github.com/gaker/rapidgeo/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/gaker/rapidgeo)](https://codecov.io/gh/gaker/rapidgeo)
 
 Geographic and planar distance calculations.
 
@@ -30,7 +32,7 @@ let nyc = LngLat::new_deg(-74.0060, 40.7128);   // New York City
 let distance = geodesic::haversine(sf, nyc);
 println!("Distance: {:.1} km", distance / 1000.0);
 
-// Vincenty: ±1mm accuracy globally (requires "vincenty" feature)
+// Vincenty: Sub-meter accuracy globally (requires "vincenty" feature)
 let precise = geodesic::vincenty_distance_m(sf, nyc)?;
 println!("Precise: {:.3} km", precise / 1000.0);
 
@@ -64,10 +66,10 @@ let (lng_rad, lat_rad) = point.to_radians();
 ```rust
 use rapidgeo_distance::geodesic::{haversine, vincenty_distance_m, VincentyError};
 
-// Haversine: Fast, decent accuracy for distances <1000km
+// Haversine: Fast, good accuracy for distances <1000km
 let distance_m = haversine(point1, point2);
 
-// Vincenty: Slow, very accuracy, may fail for antipodal points
+// Vincenty: Slower, very accurate, may fail for antipodal points
 match vincenty_distance_m(point1, point2) {
     Ok(distance) => println!("{:.3} m", distance),
     Err(VincentyError::DidNotConverge) => {
@@ -151,17 +153,17 @@ let total = path_length_haversine_par(&large_dataset);
 
 | Algorithm | Speed | Accuracy | Best For |
 |-----------|-------|----------|----------|
-| Haversine | 46ns | ±0.5% | Distances <1000km |
-| Vincenty | 271ns | ±1mm | High precision, any distance |
+| [Haversine](https://en.wikipedia.org/wiki/Haversine_formula) | 46ns | ±0.5% | Distances <1000km |
+| [Vincenty](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) | 271ns | ±1mm | High precision, any distance |
 | Euclidean | 1ns | Poor at scale | Small areas, relative comparisons |
 
 ### Accuracy Details
 
-**Haversine**: Uses spherical approximation with ellipsoidal correction. Good tradeoff for accuracy vs speed.
+**Haversine**: Uses spherical approximation with ellipsoidal correction for the [WGS84 ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System). Good tradeoff for accuracy vs speed.
 
-**Vincenty**: Implements Vincenty's inverse formula on WGS84 ellipsoid. It might fail to converge for nearly antipodal points, and is quite a bit slower.
+**Vincenty**: Implements [Vincenty's inverse formula](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) on WGS84 ellipsoid. May fail to converge for nearly antipodal points.
 
-**Euclidean**: Simple Pythagorean distance in degree space. Ignores Earth curvature. Error increases with distance and latitude.
+**Euclidean**: Simple [Pythagorean theorem](https://en.wikipedia.org/wiki/Pythagorean_theorem) in degree space. Ignores Earth curvature. Error increases with distance and latitude.
 
 ## Features
 
@@ -198,3 +200,12 @@ let coord = LngLat::new_deg(lng, lat);  // Note: lng first
 - Parallel functions require the `batch` feature
 - All geodesic calculations assume WGS84 ellipsoid
 - Point-to-segment functions assume segments shorter than hemisphere
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or https://www.apache.org/licenses/LICENSE-2.0)
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
+
+at your option.

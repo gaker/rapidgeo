@@ -66,6 +66,50 @@ fn compute_distance_to_projection(point_e: f64, point_n: f64, proj_e: f64, proj_
     (de * de + dn * dn).sqrt()
 }
 
+/// Calculates the minimum distance from a point to a line segment using ENU projection.
+///
+/// Projects the coordinates to a local [East-North-Up (ENU)](https://en.wikipedia.org/wiki/Local_tangent_plane_coordinates)
+/// coordinate system centered at the segment midpoint, then calculates the Euclidean
+/// distance from the point to the closest point on the segment.
+///
+/// This method is accurate for segments shorter than ~100km and provides good
+/// performance for most geographic applications.
+///
+/// # Arguments
+///
+/// * `point` - The point to measure from
+/// * `segment` - Line segment defined by two endpoints (start, end)
+///
+/// # Returns
+///
+/// Distance in meters
+///
+/// # Examples
+///
+/// ```
+/// use rapidgeo_distance::{LngLat, geodesic::point_to_segment_enu_m};
+///
+/// // Horizontal segment
+/// let segment = (
+///     LngLat::new_deg(-122.4194, 37.7749), // San Francisco
+///     LngLat::new_deg(-122.4094, 37.7749), // 1km east
+/// );
+///
+/// // Point 500m north of segment midpoint
+/// let point = LngLat::new_deg(-122.4144, 37.7794);
+/// let distance = point_to_segment_enu_m(point, segment);
+///
+/// assert!(distance > 480.0 && distance < 520.0); // ~500m
+/// ```
+///
+/// # Accuracy
+///
+/// This method is most accurate for:
+/// - Segments shorter than ~100km
+/// - Points within ~50km of the segment
+/// - Low to moderate latitudes (< 70°)
+///
+/// For longer segments or higher precision, consider [`great_circle_point_to_seg`].
 pub fn point_to_segment_enu_m(point: LngLat, segment: (LngLat, LngLat)) -> f64 {
     let (seg_start, seg_end) = segment;
 
@@ -85,6 +129,59 @@ pub fn point_to_segment_enu_m(point: LngLat, segment: (LngLat, LngLat)) -> f64 {
     compute_distance_to_projection(point_e, point_n, proj_e, proj_n)
 }
 
+/// Calculates the minimum distance from a point to a line segment using great circle geometry.
+///
+/// Uses spherical geometry to calculate the [cross-track distance](https://en.wikipedia.org/wiki/Cross-track_error)
+/// from a point to a great circle segment. This method works for any segment length
+/// and maintains accuracy globally.
+///
+/// The algorithm uses the spherical triangle formed by the segment endpoints and
+/// the query point to compute the perpendicular distance to the great circle path,
+/// handling cases where the projection falls outside the segment endpoints.
+///
+/// # Arguments
+///
+/// * `point` - The point to measure from
+/// * `segment` - Line segment defined by two endpoints (start, end)
+///
+/// # Returns
+///
+/// Distance in meters
+///
+/// # Examples
+///
+/// ```
+/// use rapidgeo_distance::{LngLat, geodesic::great_circle_point_to_seg};
+///
+/// // Long-distance segment (SF to NYC)
+/// let segment = (
+///     LngLat::new_deg(-122.4194, 37.7749), // San Francisco
+///     LngLat::new_deg(-74.0060, 40.7128),  // New York City
+/// );
+///
+/// // Point somewhere in the middle (Denver area)
+/// let point = LngLat::new_deg(-105.0, 39.7);
+/// let distance = great_circle_point_to_seg(point, segment);
+///
+/// assert!(distance > 0.0 && distance < 1_000_000.0); // Reasonable distance
+/// ```
+///
+/// # Algorithm Details
+///
+/// This method uses [Heron's formula](https://en.wikipedia.org/wiki/Heron%27s_formula) to calculate
+/// the area of the spherical triangle, then derives the cross-track distance.
+/// It handles edge cases including:
+/// - Zero-length segments
+/// - Degenerate triangles
+/// - Numerical stability issues near poles or for very small segments
+///
+/// # Accuracy vs Performance
+///
+/// More accurate than [`point_to_segment_enu_m`] for long segments but slower.
+/// Use this method when:
+/// - Segment length > 100km
+/// - High precision is required
+/// - Working at extreme latitudes
 pub fn great_circle_point_to_seg(point: LngLat, segment: (LngLat, LngLat)) -> f64 {
     let (seg_start, seg_end) = segment;
 

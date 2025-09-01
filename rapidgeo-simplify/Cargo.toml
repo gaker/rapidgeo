@@ -1,12 +1,19 @@
 [package]
 name = "rapidgeo-simplify"
-version = "0.1.0"
-edition = "2021"
-license = "MIT OR Apache-2.0"
-authors = ["gaker"]
-homepage = "https://github.com/gaker/rapidgo"
-repository = "https://github.com/gaker/rapidgo"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
 description = "Douglas-Peucker polyline simplification with pluggable distance backends"
+keywords = ["gis", "geospatial", "polyline", "simplification", "douglas-peucker"]
+categories = ["algorithms", "science::geo"]
+readme = "README.md"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []

@@ -1,33 +1,33 @@
 //! Geodesic (Earth-aware) distance calculations.
 //!
 //! This module provides distance calculation functions that account for the Earth's
-//! curvature and ellipsoidal shape. All calculations assume the WGS84 ellipsoid.
+//! curvature and ellipsoidal shape. All calculations assume the [WGS84 ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System).
 //!
 //! # Algorithms
 //!
-//! - [`haversine`]: Fast spherical approximation, ±0.5% accuracy for distances <1000km
-//! - [`vincenty_distance_m`]: High-precision ellipsoidal calculation, ±1mm accuracy globally
+//! - [`haversine()`]: Fast spherical approximation using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula), ±0.5% accuracy for distances <1000km
+//! - [`vincenty_distance_m`]: High-precision ellipsoidal calculation using [Vincenty's formulae](https://en.wikipedia.org/wiki/Vincenty%27s_formulae), ±1mm accuracy globally
 //! - Point-to-segment functions for calculating distances from points to line segments
 //!
 //! # Algorithm Selection Guide
 //!
 //! | Algorithm | Speed | Accuracy | Use When |
 //! |-----------|-------|----------|----------|
-//! | Haversine | Fast | ±0.5% | Short distances (<1000km), performance critical |
-//! | Vincenty | Slow | ±1mm | High precision needed, any distance |
+//! | [Haversine](https://en.wikipedia.org/wiki/Haversine_formula) | Fast | ±0.5% | Short distances (<1000km), performance critical |
+//! | [Vincenty](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) | Slow | ±1mm | High precision needed, any distance |
 //!
 //! # WGS84 Ellipsoid Parameters
 //!
-//! The geodesic calculations use the World Geodetic System 1984 (WGS84) ellipsoid:
+//! The geodesic calculations use the [World Geodetic System 1984 (WGS84)](https://en.wikipedia.org/wiki/World_Geodetic_System) ellipsoid:
 //! - Semi-major axis (a): 6,378,137 meters
 //! - Semi-minor axis (b): 6,356,752.314245 meters  
 //! - Flattening (f): 1/298.257223563
 //!
 //! # Vincenty Algorithm Limitations
 //!
-//! The Vincenty algorithm may fail to converge for nearly antipodal points (opposite
+//! The [Vincenty algorithm](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) may fail to converge for nearly antipodal points (opposite
 //! sides of Earth). When this occurs, [`VincentyError::DidNotConverge`] is returned.
-//! Consider using [`haversine`] as a fallback for such cases.
+//! Consider using [`haversine()`] as a fallback for such cases.
 
 pub mod haversine;
 pub mod point_to_segment;

@@ -28,20 +28,68 @@ fn validate_decoded_coordinate(coord: &LngLat) -> PolylineResult<()> {
     Ok(())
 }
 
-/// Decodes a polyline string into a sequence of coordinates.
+/// Decodes a polyline string into a sequence of coordinates using [Google's Polyline Algorithm](https://developers.google.com/maps/documentation/utilities/polylinealgorithm).
+///
+/// Reverses the encoding process by parsing the ASCII string, extracting delta-encoded
+/// coordinate values, and reconstructing the original coordinate sequence.
 ///
 /// # Arguments
 ///
-/// * `polyline` - The polyline string to decode
-/// * `precision` - Number of decimal places the polyline was encoded with (typically 5 or 6)
+/// * `polyline` - ASCII polyline string (characters in range 63-126)
+/// * `precision` - Decimal places the polyline was encoded with (1-11, typically 5 or 6)
+///
+/// # Returns
+///
+/// Returns a vector of coordinates in longitude, latitude order, or an error if
+/// the polyline is malformed or precision is invalid.
+///
+/// # Errors
+///
+/// - [`PolylineError::InvalidCharacter`] for characters outside valid range (63-126)
+/// - [`PolylineError::TruncatedData`] for incomplete or malformed polylines
+/// - [`PolylineError::InvalidPrecision`] for precision outside 1-11 range
+/// - [`PolylineError::CoordinateOverflow`] during reconstruction
+/// - [`PolylineError::InvalidCoordinate`] for decoded coordinates outside reasonable bounds
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use rapidgeo_polyline::decode;
 ///
-/// let decoded = decode("_p~iF~ps|U_ulLnnqC_mqNvxq`@", 5).unwrap();
+/// // Decode Google's test vector
+/// let decoded = decode("_p~iF~ps|U_ulLnnqC_mqNvxq`@", 5)?;
 /// assert_eq!(decoded.len(), 3);
+///
+/// // Check first coordinate
+/// assert!((decoded[0].lng_deg - (-120.2)).abs() < 0.00001);
+/// assert!((decoded[0].lat_deg - 38.5).abs() < 0.00001);
+///
+/// // Empty polylines decode to empty vectors
+/// let empty = decode("", 5)?;
+/// assert_eq!(empty.len(), 0);
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
+/// ```
+///
+/// # Round-trip with Encoding
+///
+/// ```rust
+/// use rapidgeo_polyline::{encode, decode};
+/// use rapidgeo_distance::LngLat;
+///
+/// let original = vec![
+///     LngLat::new_deg(-122.4194, 37.7749),  // San Francisco
+///     LngLat::new_deg(-74.0059, 40.7128),   // New York
+/// ];
+///
+/// let encoded = encode(&original, 5)?;
+/// let decoded = decode(&encoded, 5)?;
+///
+/// // Should round-trip with minimal precision loss
+/// for (orig, dec) in original.iter().zip(decoded.iter()) {
+///     assert!((orig.lng_deg - dec.lng_deg).abs() < 0.00001);
+///     assert!((orig.lat_deg - dec.lat_deg).abs() < 0.00001);
+/// }
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
 /// ```
 pub fn decode(polyline: &str, precision: u8) -> PolylineResult<Vec<LngLat>> {
     if precision == 0 || precision > 11 {

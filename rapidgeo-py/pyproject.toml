@@ -28,15 +28,15 @@ keywords = ["distance", "geodesic", "haversine", "vincenty", "geometry", "gis"]
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/gaker/rapidgo"
-Repository = "https://github.com/gaker/rapidgo"
-Documentation = "https://github.com/gaker/rapidgo"
-Issues = "https://github.com/gaker/rapidgo/issues"
+Homepage = "https://github.com/gaker/rapidgeo"
+Repository = "https://github.com/gaker/rapidgeo"
+Documentation = "https://rapidgeo.readthedocs.io/"
+Issues = "https://github.com/gaker/rapidgeo/issues"
 
 [project.optional-dependencies]
 numpy = ["numpy>=1.19.0"]
 
 [tool.maturin]
-features = ["pyo3/extension-module", "numpy"]
+features = ["pyo3/extension-module"]
 python-source = "python"
 module-name = "rapidgeo._rapidgeo"

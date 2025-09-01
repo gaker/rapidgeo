@@ -5,33 +5,6 @@ use crate::LngLat;
 /// Balances meridional and equatorial accuracy for best overall performance
 const EARTH_RADIUS_M: f64 = 6371008.8;
 
-/// Calculates the great-circle distance between two points using the haversine formula.
-///
-/// Uses a spherical Earth approximation with mean radius 6,371,008.8 meters.
-/// Fast but less accurate than Vincenty, with ±0.5% error for distances under 1000km.
-///
-/// # Arguments
-///
-/// * `a` - First coordinate
-/// * `b` - Second coordinate
-///
-/// # Returns
-///
-/// Distance in meters
-///
-/// # Examples
-///
-/// ```
-/// use rapidgeo_distance::{LngLat, geodesic::haversine};
-///
-/// let sf = LngLat::new_deg(-122.4194, 37.7749);
-/// let nyc = LngLat::new_deg(-74.0060, 40.7128);
-/// let distance = haversine(sf, nyc);
-/// assert!((distance - 4135000.0).abs() < 10000.0); // ~4,135 km
-///
-/// // Identical points return 0
-/// assert_eq!(haversine(sf, sf), 0.0);
-/// ```
 #[inline]
 fn normalize_longitude_difference(dlng: f64) -> f64 {
     let mut normalized_dlng = dlng;
@@ -76,6 +49,51 @@ fn apply_ellipsoidal_correction(
     spherical_distance * flattening_correction
 }
 
+/// Calculates the great-circle distance between two points using the [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+///
+/// Uses a spherical Earth approximation with mean radius 6,371,008.8 meters, enhanced with
+/// ellipsoidal corrections for the [WGS84 ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System).
+/// Fast but less accurate than Vincenty, with ±0.5% error for distances under 1000km.
+///
+/// The formula calculates the shortest distance over the Earth's surface, giving an
+/// "as-the-crow-flies" distance between the points (ignoring any hills, valleys, or
+/// obstacles along the surface of the earth).
+///
+/// # Arguments
+///
+/// * `a` - First coordinate
+/// * `b` - Second coordinate
+///
+/// # Returns
+///
+/// Distance in meters
+///
+/// # Examples
+///
+/// ```
+/// use rapidgeo_distance::{LngLat, geodesic::haversine};
+///
+/// let sf = LngLat::new_deg(-122.4194, 37.7749);
+/// let nyc = LngLat::new_deg(-74.0060, 40.7128);
+/// let distance = haversine(sf, nyc);
+/// assert!((distance - 4135000.0).abs() < 10000.0); // ~4,135 km
+///
+/// // Identical points return 0
+/// assert_eq!(haversine(sf, sf), 0.0);
+/// ```
+///
+/// # Algorithm Details
+///
+/// This implementation uses the standard [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula)
+/// with ellipsoidal corrections to account for Earth's flattening. The formula is:
+///
+/// ```text
+/// a = sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)
+/// c = 2 × atan2(√a, √(1-a))
+/// d = R × c
+/// ```
+///
+/// Where φ is latitude, λ is longitude, and R is Earth's radius.
 pub fn haversine(a: LngLat, b: LngLat) -> f64 {
     let (lng1_rad, lat1_rad) = a.to_radians();
     let (lng2_rad, lat2_rad) = b.to_radians();

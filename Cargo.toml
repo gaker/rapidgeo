@@ -12,8 +12,8 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["gaker"]
-homepage = "https://github.com/gaker/rapidgo"
-repository = "https://github.com/gaker/rapidgo"
+homepage = "https://github.com/gaker/rapidgeo"
+repository = "https://github.com/gaker/rapidgeo"
 
 [workspace.dependencies]
 pyo3 = { version = "0.26", features = ["extension-module"] }

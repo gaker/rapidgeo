@@ -1,8 +1,9 @@
 //! Euclidean (flat-plane) distance calculations.
 //!
 //! This module provides fast distance calculations treating coordinates as points
-//! on a flat Cartesian plane. These functions ignore Earth's curvature and are
-//! suitable for small areas or when speed is prioritized over accuracy.
+//! on a flat [Cartesian plane](https://en.wikipedia.org/wiki/Cartesian_coordinate_system).
+//! These functions ignore Earth's curvature and use the [Pythagorean theorem](https://en.wikipedia.org/wiki/Pythagorean_theorem)
+//! to calculate straight-line distances in degree space.
 //!
 //! # When to Use Euclidean Distance
 //!
@@ -11,26 +12,39 @@
 //! - High-performance applications requiring many calculations
 //! - Relative distance comparisons (finding nearest points)
 //! - Coordinate systems already projected to a flat plane
+//! - Applications where computational speed is more important than accuracy
 //!
 //! **Avoid for:**
 //! - Long distances (> 100km)
-//! - High-latitude regions where longitude compression is significant
+//! - High-latitude regions where [longitude compression](https://en.wikipedia.org/wiki/Longitude) is significant
 //! - Precise measurements requiring sub-meter accuracy
+//! - Navigation or surveying applications
 //!
 //! # Accuracy Degradation
 //!
 //! Euclidean accuracy degrades with:
 //! - **Distance**: Error increases quadratically with distance
-//! - **Latitude**: Error increases toward poles due to longitude compression
+//! - **Latitude**: Error increases toward poles due to [longitude compression](https://en.wikipedia.org/wiki/Longitude)
 //! - **East-West vs North-South**: East-West errors are larger at high latitudes
 //!
 //! At 45° latitude, a 1° longitude difference represents ~79km (not 111km as assumed).
+//!
+//! # Mathematical Background
+//!
+//! All functions in this module use the standard [Euclidean distance formula](https://en.wikipedia.org/wiki/Euclidean_distance):
+//!
+//! ```text
+//! d = √[(x₂ - x₁)² + (y₂ - y₁)²]
+//! ```
+//!
+//! Where (x₁, y₁) and (x₂, y₂) are coordinates in decimal degrees.
 
 use crate::LngLat;
 
-/// Calculates the Euclidean distance between two coordinates in decimal degrees.
+/// Calculates the [Euclidean distance](https://en.wikipedia.org/wiki/Euclidean_distance) between two coordinates in decimal degrees.
 ///
 /// Treats the coordinates as points on a flat plane, ignoring Earth's curvature.
+/// Uses the [Pythagorean theorem](https://en.wikipedia.org/wiki/Pythagorean_theorem): d = √[(x₂-x₁)² + (y₂-y₁)²].
 /// Fast but inaccurate for long distances or high latitudes.
 ///
 /// # Arguments
@@ -58,6 +72,11 @@ use crate::LngLat;
 /// // Symmetric
 /// assert_eq!(distance_euclid(p1, p2), distance_euclid(p2, p1));
 /// ```
+///
+/// # Performance vs Accuracy Trade-off
+///
+/// This function prioritizes speed over accuracy. For precise geographic distances,
+/// use [`crate::geodesic::haversine()`] or [`crate::geodesic::vincenty_distance_m`].
 pub fn distance_euclid(p1: LngLat, p2: LngLat) -> f64 {
     let dx = p2.lng_deg - p1.lng_deg;
     let dy = p2.lat_deg - p1.lat_deg;

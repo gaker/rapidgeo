@@ -6,6 +6,8 @@ Cargo.lock
 lcov.info
 tarpaulin-report.html
 
+rapidgeo-py/docs/_build
+
 # Python
 __pycache__/
 *.py[cod]

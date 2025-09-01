@@ -1,15 +1,62 @@
+//! Batch and parallel processing for multiple polylines.
+//!
+//! This module provides functions to simplify multiple polylines efficiently,
+//! with optional parallel processing using [Rayon](https://docs.rs/rayon/).
+//!
+//! # Features
+//!
+//! - Batch processing of multiple polylines
+//! - Parallel processing with automatic work stealing
+//! - Memory-efficient "into" variants that reuse output buffers
+//! - Hybrid serial/parallel processing based on segment size
+//!
+//! # Examples
+//!
+//! ```rust
+//! use rapidgeo_distance::LngLat;
+//! use rapidgeo_simplify::{batch::simplify_batch, SimplifyMethod};
+//!
+//! let polylines = vec![
+//!     vec![
+//!         LngLat::new_deg(-122.0, 37.0),
+//!         LngLat::new_deg(-121.5, 37.5),
+//!         LngLat::new_deg(-121.0, 37.0),
+//!     ],
+//!     vec![
+//!         LngLat::new_deg(-74.0, 40.0),
+//!         LngLat::new_deg(-73.5, 40.5),
+//!         LngLat::new_deg(-73.0, 40.0),
+//!     ],
+//! ];
+//!
+//! let simplified = simplify_batch(
+//!     &polylines,
+//!     1000.0, // 1km tolerance
+//!     SimplifyMethod::GreatCircleMeters,
+//! );
+//!
+//! assert_eq!(simplified.len(), polylines.len());
+//! ```
+
 use crate::{xt::PerpDistance, SimplifyMethod};
 use rapidgeo_distance::LngLat;
 
 #[cfg(feature = "batch")]
 use rayon::prelude::*;
 
+/// Threshold for switching between serial and parallel distance calculations.
+///
+/// Segments with fewer candidate points use serial processing to avoid
+/// the overhead of parallel task creation.
 const PARALLEL_DISTANCE_THRESHOLD: usize = 100;
 
 /// Errors that can occur during batch processing operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BatchError {
     /// The provided output buffer is too small for the input data.
+    ///
+    /// This occurs when using the "_into" variants with pre-allocated buffers
+    /// that don't have enough capacity for all input polylines.
     BufferTooSmall {
         /// Number of slots needed in the output buffer
         needed: usize,
@@ -18,6 +65,51 @@ pub enum BatchError {
     },
 }
 
+/// Simplify multiple polylines in parallel.
+///
+/// Uses Rayon to process polylines across multiple threads with automatic
+/// work stealing for optimal load balancing.
+///
+/// # Arguments
+///
+/// * `polylines` - Slice of input polylines to simplify
+/// * `tolerance_m` - Distance threshold for all polylines
+/// * `method` - Distance calculation method to use
+///
+/// # Returns
+///
+/// Vector of simplified polylines in the same order as input
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(feature = "batch")]
+/// # {
+/// use rapidgeo_distance::LngLat;
+/// use rapidgeo_simplify::{batch::simplify_batch_par, SimplifyMethod};
+///
+/// let polylines = vec![
+///     vec![
+///         LngLat::new_deg(-122.0, 37.0),
+///         LngLat::new_deg(-121.0, 37.0),
+///     ],
+///     // ... more polylines
+/// ];
+///
+/// let simplified = simplify_batch_par(
+///     &polylines,
+///     1000.0,
+///     SimplifyMethod::GreatCircleMeters,
+/// );
+/// # }
+/// ```
+///
+/// # Performance
+///
+/// Parallel processing provides the most benefit when:
+/// - Processing many polylines (>= 10)
+/// - Polylines have many points (>= 1000 each)
+/// - Using computationally expensive distance methods (GreatCircleMeters)
 #[cfg(feature = "batch")]
 pub fn simplify_batch_par(
     polylines: &[Vec<LngLat>],
@@ -34,6 +126,47 @@ pub fn simplify_batch_par(
         .collect()
 }
 
+/// Simplify multiple polylines in parallel into pre-allocated output buffers.
+///
+/// This variant avoids allocating new vectors for the output, instead reusing
+/// the provided output slice. Each output vector is cleared before use.
+///
+/// # Arguments
+///
+/// * `polylines` - Input polylines to simplify
+/// * `tolerance_m` - Distance threshold
+/// * `method` - Distance calculation method
+/// * `output` - Pre-allocated output vectors (must have at least `polylines.len()` capacity)
+///
+/// # Errors
+///
+/// Returns [`BatchError::BufferTooSmall`] if the output slice has fewer
+/// elements than the input polylines slice.
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(feature = "batch")]
+/// # {
+/// use rapidgeo_distance::LngLat;
+/// use rapidgeo_simplify::{batch::simplify_batch_par_into, SimplifyMethod};
+///
+/// let polylines = vec![
+///     vec![LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 37.0)],
+/// ];
+///
+/// let mut output = vec![Vec::new(); polylines.len()];
+/// let result = simplify_batch_par_into(
+///     &polylines,
+///     1000.0,
+///     SimplifyMethod::GreatCircleMeters,
+///     &mut output,
+/// );
+///
+/// assert!(result.is_ok());
+/// assert_eq!(output[0].len(), 2); // Both endpoints kept
+/// # }
+/// ```
 #[cfg(feature = "batch")]
 pub fn simplify_batch_par_into(
     polylines: &[Vec<LngLat>],
@@ -58,6 +191,37 @@ pub fn simplify_batch_par_into(
     Ok(())
 }
 
+/// Simplify multiple polylines sequentially.
+///
+/// Processes polylines one at a time in a single thread. Use this when:
+/// - Processing few polylines
+/// - Polylines are small
+/// - Memory usage is more important than speed
+/// - The `batch` feature is not enabled
+///
+/// # Examples
+///
+/// ```rust
+/// use rapidgeo_distance::LngLat;
+/// use rapidgeo_simplify::{batch::simplify_batch, SimplifyMethod};
+///
+/// let polylines = vec![
+///     vec![
+///         LngLat::new_deg(-122.0, 37.0),
+///         LngLat::new_deg(-121.5, 37.5),
+///         LngLat::new_deg(-121.0, 37.0),
+///     ],
+/// ];
+///
+/// let simplified = simplify_batch(
+///     &polylines,
+///     1000.0,
+///     SimplifyMethod::GreatCircleMeters,
+/// );
+///
+/// assert_eq!(simplified.len(), 1);
+/// assert!(simplified[0].len() >= 2); // Endpoints preserved
+/// ```
 pub fn simplify_batch(
     polylines: &[Vec<LngLat>],
     tolerance_m: f64,
@@ -73,6 +237,33 @@ pub fn simplify_batch(
         .collect()
 }
 
+/// Simplify multiple polylines sequentially into pre-allocated output buffers.
+///
+/// Sequential version of [`simplify_batch_par_into`]. Use when parallel
+/// processing is not needed or the `batch` feature is disabled.
+///
+/// # Examples
+///
+/// ```rust
+/// use rapidgeo_distance::LngLat;
+/// use rapidgeo_simplify::{batch::{simplify_batch_into, BatchError}, SimplifyMethod};
+///
+/// let polylines = vec![
+///     vec![LngLat::new_deg(-122.0, 37.0), LngLat::new_deg(-121.0, 37.0)],
+/// ];
+///
+/// let mut output = vec![Vec::new(); 2]; // More capacity than needed
+/// let result = simplify_batch_into(
+///     &polylines,
+///     1000.0,
+///     SimplifyMethod::GreatCircleMeters,
+///     &mut output,
+/// );
+///
+/// assert!(result.is_ok());
+/// assert_eq!(output[0].len(), 2); // Both endpoints kept
+/// assert_eq!(output[1].len(), 0); // Second slot unused
+/// ```
 pub fn simplify_batch_into(
     polylines: &[Vec<LngLat>],
     tolerance_m: f64,
@@ -93,6 +284,42 @@ pub fn simplify_batch_into(
     Ok(())
 }
 
+/// Generate a simplification mask using parallel processing.
+///
+/// Parallel version of [`crate::simplify_dp_mask`] that uses multiple threads
+/// for distance calculations on large line segments.
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(feature = "batch")]
+/// # {
+/// use rapidgeo_distance::LngLat;
+/// use rapidgeo_simplify::{batch::simplify_dp_mask_par, SimplifyMethod};
+///
+/// let points = vec![
+///     LngLat::new_deg(-122.0, 37.0),
+///     LngLat::new_deg(-121.5, 37.5),
+///     LngLat::new_deg(-121.0, 37.0),
+/// ];
+///
+/// let mut mask = Vec::new();
+/// simplify_dp_mask_par(
+///     &points,
+///     1000.0,
+///     SimplifyMethod::GreatCircleMeters,
+///     &mut mask,
+/// );
+///
+/// assert_eq!(mask.len(), points.len());
+/// # }
+/// ```
+///
+/// # Performance Notes
+///
+/// - Switches to parallel processing when segments have > 100 candidate points
+/// - For smaller segments, uses serial processing to avoid overhead
+/// - Results are identical to the serial version
 #[cfg(feature = "batch")]
 pub fn simplify_dp_mask_par(
     pts: &[LngLat],
@@ -119,6 +346,37 @@ pub fn simplify_dp_mask_par(
     }
 }
 
+/// Simplify a single polyline using parallel processing.
+///
+/// Parallel version of [`crate::simplify_dp_into`] that can provide better
+/// performance for very large polylines (thousands of points).
+///
+/// # Examples
+///
+/// ```rust
+/// # #[cfg(feature = "batch")]
+/// # {
+/// use rapidgeo_distance::LngLat;
+/// use rapidgeo_simplify::{batch::simplify_dp_into_par, SimplifyMethod};
+///
+/// let points = vec![
+///     LngLat::new_deg(-122.0, 37.0),
+///     LngLat::new_deg(-121.5, 37.5),
+///     LngLat::new_deg(-121.0, 37.0),
+/// ];
+///
+/// let mut simplified = Vec::new();
+/// let count = simplify_dp_into_par(
+///     &points,
+///     1000.0,
+///     SimplifyMethod::GreatCircleMeters,
+///     &mut simplified,
+/// );
+///
+/// assert_eq!(count, simplified.len());
+/// assert!(count >= 2); // Endpoints preserved
+/// # }
+/// ```
 #[cfg(feature = "batch")]
 pub fn simplify_dp_into_par(
     pts: &[LngLat],
@@ -140,6 +398,19 @@ pub fn simplify_dp_into_par(
     out.len()
 }
 
+/// Internal parallel implementation of the Douglas-Peucker algorithm.
+///
+/// This function implements the same algorithm as [`crate::dp::simplify_mask`]
+/// but uses parallel processing for distance calculations when processing
+/// large line segments.
+///
+/// # Hybrid Processing
+///
+/// - Segments with ≤ 100 candidate points: Serial processing
+/// - Segments with > 100 candidate points: Parallel processing with Rayon
+///
+/// This hybrid approach avoids the overhead of parallel task creation for
+/// small segments while gaining benefits for large segments.
 #[cfg(feature = "batch")]
 fn simplify_mask_par<D: PerpDistance + Sync>(
     pts: &[LngLat],

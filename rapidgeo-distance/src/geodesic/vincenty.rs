@@ -6,22 +6,31 @@ const A: f64 = 6378137.0;
 /// WGS84 semi-minor axis in meters
 const B: f64 = 6356752.314245;
 
-/// Errors that can occur during Vincenty distance calculations.
+/// Errors that can occur during [Vincenty distance calculations](https://en.wikipedia.org/wiki/Vincenty%27s_formulae).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VincentyError {
     /// The iterative algorithm failed to converge within the iteration limit.
     ///
     /// This typically occurs for nearly antipodal points (opposite sides of Earth).
-    /// Consider using [`haversine`] as a fallback for such cases.
+    /// [Vincenty's method](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) uses an iterative approach
+    /// that may not converge for points that are nearly 180° apart on the Earth's surface.
+    ///
+    /// Consider using [`crate::geodesic::haversine()`] as a fallback for such cases.
     DidNotConverge,
     /// Invalid input coordinates (NaN or infinite values).
+    ///
+    /// Returned when one or more coordinate values are not finite numbers.
+    /// Check that all longitude and latitude values are valid before calling.
     Domain,
 }
 
-/// Calculates the precise distance between two points using Vincenty's inverse formula.
+/// Calculates the precise distance between two points using [Vincenty's inverse formula](https://en.wikipedia.org/wiki/Vincenty%27s_formulae).
 ///
-/// Uses the WGS84 ellipsoid for high-precision calculations with ±1mm accuracy globally.
+/// Uses the [WGS84 ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System) for high-precision calculations with ±1mm accuracy globally.
 /// Slower than haversine but much more accurate, especially for long distances.
+///
+/// This implementation uses the iterative method described in [Vincenty (1975)](https://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf)
+/// for solving the inverse geodetic problem on an ellipsoid.
 ///
 /// # Arguments
 ///
@@ -48,6 +57,8 @@ pub enum VincentyError {
 ///     },
 ///     Err(VincentyError::DidNotConverge) => {
 ///         // Use haversine as fallback for antipodal points
+///         use rapidgeo_distance::geodesic::haversine;
+///         let fallback_distance = haversine(sf, nyc);
 ///     },
 ///     Err(VincentyError::Domain) => {
 ///         // Handle invalid coordinates
@@ -61,6 +72,13 @@ pub enum VincentyError {
 /// let invalid = LngLat::new_deg(f64::NAN, 0.0);
 /// assert_eq!(vincenty_distance_m(sf, invalid), Err(VincentyError::Domain));
 /// ```
+///
+/// # Algorithm Details
+///
+/// [Vincenty's formulae](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) are used to calculate geodesic
+/// distances with high accuracy on the [WGS84 ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System).
+/// The method is iterative and may fail to converge for nearly antipodal points
+/// (points on opposite sides of the Earth).
 #[inline]
 fn wrap_pi(x: f64) -> f64 {
     let two_pi = std::f64::consts::TAU;

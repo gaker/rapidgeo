@@ -3,16 +3,41 @@
 //! This crate provides distance calculation functions for geographic coordinates
 //! using both geodesic (Earth-aware) and Euclidean (flat-plane) algorithms.
 //!
+//! # Quick Start
+//!
+//! ```
+//! use rapidgeo_distance::{LngLat, geodesic, euclid};
+//!
+//! let sf = LngLat::new_deg(-122.4194, 37.7749);   // San Francisco
+//! let nyc = LngLat::new_deg(-74.0060, 40.7128);   // New York City
+//!
+//! // Haversine: Fast, ±0.5% accuracy for distances <1000km
+//! let distance = geodesic::haversine(sf, nyc);
+//! println!("Distance: {:.1} km", distance / 1000.0);
+//!
+//! // Euclidean: Very fast but inaccurate for large distances
+//! let euclidean = euclid::distance_euclid(sf, nyc);
+//! println!("Euclidean: {:.6}°", euclidean);
+//! ```
+//!
+//! # Algorithm Selection
+//!
+//! | Algorithm | Speed | Accuracy | Best For |
+//! |-----------|-------|----------|----------|
+//! | [Haversine](https://en.wikipedia.org/wiki/Haversine_formula) | Fast | ±0.5% | General use, distances <1000km |
+//! | [Vincenty](https://en.wikipedia.org/wiki/Vincenty%27s_formulae) | Slow | ±1mm | High precision, any distance |
+//! | [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) | Fastest | Poor | Small areas, relative comparisons |
+//!
 //! # Coordinate System
 //!
 //! All coordinates use the **lng, lat** ordering convention (longitude first, latitude second).
 //! Coordinates are stored in decimal degrees and converted to radians internally as needed.
-//! The geodesic calculations assume the WGS84 ellipsoid.
+//! The geodesic calculations assume the [WGS84 ellipsoid](https://en.wikipedia.org/wiki/World_Geodetic_System).
 //!
 //! # Modules
 //!
-//! - [`geodesic`]: Earth-aware distance calculations (haversine, Vincenty)
-//! - [`euclid`]: Fast planar distance calculations
+//! - [`geodesic`]: Earth-aware distance calculations using [geodesic algorithms](https://en.wikipedia.org/wiki/Geodesic)
+//! - [`euclid`]: Fast planar distance calculations using [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry)
 //! - [`batch`]: Parallel batch operations (requires `batch` feature)
 
 pub mod euclid;

@@ -33,18 +33,25 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
+    - name: Install tarpaulin
+      run: cargo install cargo-tarpaulin
+
     - name: Check formatting
       run: cargo fmt --all -- --check
     
     - name: Run clippy
       run: cargo clippy --workspace --all-targets -- -D warnings
     
-    - name: Test rapidgeo-distance
-      run: cargo test -p rapidgeo-distance --all-targets --all-features
+    - name: Test with coverage
+      run: cargo tarpaulin --all-features --out lcov --output-dir ./
     
-    - name: Test rapidgeo-simplify
-      run: cargo test -p rapidgeo-simplify --all-targets --all-features
-
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./lcov.info
+        fail_ci_if_error: false
+        verbose: true
+    
   test-python:
     name: Test Python (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}

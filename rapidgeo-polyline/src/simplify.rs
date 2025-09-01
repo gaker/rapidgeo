@@ -1,29 +1,55 @@
-//! Polyline simplification integration with Douglas-Peucker algorithm.
+//! Polyline simplification using the [Douglas-Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).
+//!
+//! This module integrates `rapidgeo-simplify` to provide coordinate simplification
+//! directly within polyline encoding workflows. Useful for reducing GPS track
+//! complexity while preserving route shape.
 
 use crate::{decode, encode, LngLat, PolylineResult};
 use rapidgeo_simplify::{simplify_dp_into, SimplifyMethod};
 
-/// Simplifies a polyline string using Douglas-Peucker algorithm.
+/// Simplifies a polyline string using the [Douglas-Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).
 ///
-/// This function decodes the polyline, applies simplification, then re-encodes it.
-/// This is a common workflow for reducing polyline complexity while preserving shape.
+/// This function decodes the polyline, applies simplification to reduce coordinate
+/// density while preserving shape, then re-encodes it. Useful for reducing storage
+/// requirements and transmission bandwidth for GPS tracks and routes.
+///
+/// The algorithm identifies points that can be removed without significantly
+/// affecting the line's shape, based on their perpendicular distance to line segments.
 ///
 /// # Arguments
 ///
-/// * `polyline` - The polyline string to simplify
-/// * `tolerance_m` - Simplification tolerance in meters
-/// * `method` - Distance calculation method for simplification
+/// * `polyline` - ASCII polyline string to simplify
+/// * `tolerance_m` - Simplification tolerance in meters (larger = more aggressive)
+/// * `method` - Distance calculation method ([`SimplifyMethod`])
 /// * `precision` - Precision for encoding/decoding (typically 5 or 6)
+///
+/// # Returns
+///
+/// Returns a simplified polyline string with potentially fewer coordinate points.
+/// The first and last coordinates are always preserved.
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use rapidgeo_polyline::simplify_polyline;
 /// use rapidgeo_simplify::SimplifyMethod;
 ///
-/// let polyline = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
-/// let simplified = simplify_polyline(polyline, 1000.0, SimplifyMethod::GreatCircleMeters, 5).unwrap();
+/// // Simplify a detailed route with 1km tolerance
+/// let detailed = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
+/// let simplified = simplify_polyline(
+///     detailed,
+///     1000.0, // 1 kilometer tolerance
+///     SimplifyMethod::GreatCircleMeters,
+///     5
+/// )?;
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
 /// ```
+///
+/// # Distance Methods
+///
+/// - [`SimplifyMethod::GreatCircleMeters`] - Accurate for global routes
+/// - [`SimplifyMethod::PlanarMeters`] - Fast approximation for small areas  
+/// - [`SimplifyMethod::EuclidRaw`] - Fastest, coordinate units
 pub fn simplify_polyline(
     polyline: &str,
     tolerance_m: f64,
@@ -35,27 +61,50 @@ pub fn simplify_polyline(
     encode(&simplified, precision)
 }
 
-/// Simplifies a sequence of coordinates using Douglas-Peucker algorithm.
+/// Simplifies a coordinate sequence using the [Douglas-Peucker algorithm](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm).
+///
+/// Reduces the number of points in a coordinate sequence while preserving the
+/// overall shape. This is the core simplification function used by other functions
+/// in this module.
 ///
 /// # Arguments
 ///
-/// * `coordinates` - The coordinates to simplify
-/// * `tolerance_m` - Simplification tolerance in meters
-/// * `method` - Distance calculation method for simplification
+/// * `coordinates` - Coordinate sequence in longitude, latitude order
+/// * `tolerance_m` - Simplification tolerance in meters (larger = more simplification)
+/// * `method` - Distance calculation method for determining point significance
+///
+/// # Returns
+///
+/// Returns a simplified coordinate sequence. Empty inputs return empty vectors.
+/// Single coordinates are returned unchanged. The first and last coordinates
+/// are always preserved for multi-point sequences.
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use rapidgeo_polyline::simplify_coordinates;
 /// use rapidgeo_simplify::SimplifyMethod;
 /// use rapidgeo_distance::LngLat;
 ///
-/// let coords = vec![
-///     LngLat::new_deg(-120.2, 38.5),
-///     LngLat::new_deg(-120.95, 40.7),
-///     LngLat::new_deg(-126.453, 43.252),
+/// // GPS track with redundant points
+/// let gps_track = vec![
+///     LngLat::new_deg(-120.0, 38.0),
+///     LngLat::new_deg(-120.001, 38.001),  // Very close to previous
+///     LngLat::new_deg(-120.002, 38.002),  // Very close to previous  
+///     LngLat::new_deg(-121.0, 39.0),     // Significant change
 /// ];
-/// let simplified = simplify_coordinates(&coords, 1000.0, SimplifyMethod::GreatCircleMeters);
+///
+/// // Simplify with 100m tolerance
+/// let simplified = simplify_coordinates(
+///     &gps_track,
+///     100.0,
+///     SimplifyMethod::GreatCircleMeters
+/// );
+///
+/// // Should remove redundant intermediate points
+/// assert!(simplified.len() < gps_track.len());
+/// assert_eq!(simplified[0], gps_track[0]); // First preserved
+/// assert_eq!(simplified.last(), gps_track.last()); // Last preserved
 /// ```
 pub fn simplify_coordinates(
     coordinates: &[LngLat],
@@ -71,32 +120,76 @@ pub fn simplify_coordinates(
     simplified
 }
 
-/// Encodes coordinates directly to a simplified polyline.
+/// Encodes coordinates directly to a simplified polyline string.
 ///
-/// This function applies simplification during encoding, which can be more efficient
-/// than encode -> decode -> simplify -> encode workflow.
+/// This is more efficient than the encode → decode → simplify → encode workflow
+/// when you have raw coordinates and want a simplified polyline result.
+///
+/// Combines coordinate simplification with polyline encoding in a single operation.
 ///
 /// # Arguments
 ///
-/// * `coordinates` - The coordinates to encode and simplify
-/// * `tolerance_m` - Simplification tolerance in meters
+/// * `coordinates` - Raw coordinate sequence in longitude, latitude order
+/// * `tolerance_m` - Simplification tolerance in meters (larger = more aggressive)
 /// * `method` - Distance calculation method for simplification
-/// * `precision` - Precision for encoding (typically 5 or 6)
+/// * `precision` - Decimal places to preserve in encoding (typically 5 or 6)
+///
+/// # Returns
+///
+/// Returns a simplified polyline string, or an error if encoding fails.
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use rapidgeo_polyline::encode_simplified;
 /// use rapidgeo_simplify::SimplifyMethod;
 /// use rapidgeo_distance::LngLat;
 ///
-/// let coords = vec![
-///     LngLat::new_deg(-120.2, 38.5),
-///     LngLat::new_deg(-120.4, 38.6),
-///     LngLat::new_deg(-120.6, 38.7),
-///     LngLat::new_deg(-120.95, 40.7),
+/// // Detailed GPS route
+/// let gps_route = vec![
+///     LngLat::new_deg(-120.0, 38.0),
+///     LngLat::new_deg(-120.01, 38.01),   // Close to previous
+///     LngLat::new_deg(-120.02, 38.02),   // Close to previous
+///     LngLat::new_deg(-120.1, 38.1),     // Significant change
+///     LngLat::new_deg(-120.2, 38.0),     // End point
 /// ];
-/// let simplified_polyline = encode_simplified(&coords, 1000.0, SimplifyMethod::GreatCircleMeters, 5).unwrap();
+///
+/// // Encode with 50m simplification tolerance
+/// let simplified_polyline = encode_simplified(
+///     &gps_route,
+///     50.0, // 50 meter tolerance
+///     SimplifyMethod::GreatCircleMeters,
+///     5
+/// )?;
+///
+/// // Result is more compact than encoding all points
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
+/// ```
+///
+/// # Use Case: GPS Track Processing
+///
+/// ```rust
+/// use rapidgeo_polyline::encode_simplified;
+/// use rapidgeo_simplify::SimplifyMethod;
+/// use rapidgeo_distance::LngLat;
+///
+/// // High-frequency GPS data (1Hz sampling)
+/// let high_res_track = vec![
+///     LngLat::new_deg(-122.0, 37.0),
+///     LngLat::new_deg(-122.0001, 37.0001), // 1 second later, minimal movement
+///     LngLat::new_deg(-122.0002, 37.0002), // 2 seconds later, minimal movement
+///     // ... many more points
+///     LngLat::new_deg(-122.1, 37.1),       // Significant position change
+/// ];
+///
+/// // Create storage-efficient polyline with 10m tolerance
+/// let efficient_track = encode_simplified(
+///     &high_res_track,
+///     10.0, // Remove GPS noise within 10 meters
+///     SimplifyMethod::GreatCircleMeters,
+///     5
+/// )?;
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
 /// ```
 pub fn encode_simplified(
     coordinates: &[LngLat],

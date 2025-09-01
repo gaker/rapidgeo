@@ -1,74 +1,84 @@
-//! Fast Google Polyline Algorithm encoding and decoding.
+//! Fast [Google Polyline Algorithm](https://developers.google.com/maps/documentation/utilities/polylinealgorithm) encoding and decoding.
 //!
-//! This crate provides efficient encoding and decoding of geographic coordinate sequences
-//! using Google's Polyline Algorithm. It uses the `LngLat` type from rapidgeo-distance
-//! and supports configurable precision and batch operations.
+//! Encodes sequences of geographic coordinates into compact ASCII strings using Google's
+//! Polyline Algorithm. Commonly used for route storage, GPS track compression, and
+//! mapping applications.
+//!
+//! Uses the `LngLat` type from `rapidgeo-distance` and integrates with `rapidgeo-simplify`
+//! for [Douglas-Peucker](https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm)
+//! simplification.
 //!
 //! # Coordinate System
 //!
-//! All coordinates use the **lng, lat** ordering convention (longitude first, latitude second).
+//! All coordinates use **longitude, latitude** ordering (x, y convention).
 //!
 //! # Examples
 //!
 //! ## Basic Encoding and Decoding
 //!
-//! ```
+//! ```rust
 //! use rapidgeo_polyline::{encode, decode};
 //! use rapidgeo_distance::LngLat;
 //!
+//! // Google's test vector
 //! let coords = vec![
 //!     LngLat::new_deg(-120.2, 38.5),
 //!     LngLat::new_deg(-120.95, 40.7),
 //!     LngLat::new_deg(-126.453, 43.252),
 //! ];
 //!
-//! let encoded = encode(&coords, 5).unwrap();
-//! let decoded = decode(&encoded, 5).unwrap();
+//! let encoded = encode(&coords, 5)?;
+//! assert_eq!(encoded, "_p~iF~ps|U_ulLnnqC_mqNvxq`@");
 //!
+//! let decoded = decode(&encoded, 5)?;
 //! assert_eq!(coords.len(), decoded.len());
+//! # Ok::<(), rapidgeo_polyline::PolylineError>(())
 //! ```
 //!
-//! ## Polyline Simplification
+//! ## Polyline Simplification with Douglas-Peucker
 //!
-//! ```
+//! ```rust
 //! use rapidgeo_polyline::{encode, encode_simplified, simplify_polyline};
 //! use rapidgeo_simplify::SimplifyMethod;
 //! use rapidgeo_distance::LngLat;
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
-//! // Create a detailed route with many points
-//! let detailed_route = vec![
+//! // Detailed GPS track with close points
+//! let gps_track = vec![
 //!     LngLat::new_deg(-122.0, 37.0),
-//!     LngLat::new_deg(-122.01, 37.01),
-//!     LngLat::new_deg(-122.02, 37.02),
-//!     LngLat::new_deg(-122.1, 37.1),
-//!     LngLat::new_deg(-122.2, 37.0),
+//!     LngLat::new_deg(-122.001, 37.001),  // Very close point
+//!     LngLat::new_deg(-122.002, 37.002),  // Very close point
+//!     LngLat::new_deg(-122.1, 37.1),     // Significant change
 //! ];
 //!
-//! // Encode with simplification (removes intermediate points within tolerance)
-//! let simplified_polyline = encode_simplified(
-//!     &detailed_route,
-//!     1000.0, // 1km tolerance
+//! // Encode with 10m simplification tolerance
+//! let simplified = encode_simplified(
+//!     &gps_track,
+//!     10.0, // meters tolerance
 //!     SimplifyMethod::GreatCircleMeters,
 //!     5
-//! ).unwrap();
+//! )?;
 //!
-//! // Or simplify an existing polyline string
-//! let original_polyline = encode(&detailed_route, 5).unwrap();
-//! let simplified = simplify_polyline(
-//!     &original_polyline,
-//!     1000.0,
+//! // Or simplify an existing polyline
+//! let original = encode(&gps_track, 5)?;
+//! let simplified_existing = simplify_polyline(
+//!     &original,
+//!     10.0,
 //!     SimplifyMethod::GreatCircleMeters,
 //!     5
-//! ).unwrap();
+//! )?;
+//! # Ok(())
+//! # }
 //! ```
 //!
-//! ## Batch Operations
+//! ## Batch Operations (Parallel Processing)
 //!
-//! ```
+//! ```rust
 //! #[cfg(feature = "batch")]
 //! use rapidgeo_polyline::batch::{encode_batch, encode_simplified_batch};
 //! use rapidgeo_simplify::SimplifyMethod;
 //! use rapidgeo_distance::LngLat;
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!
 //! let routes = vec![
 //!     vec![LngLat::new_deg(-120.2, 38.5), LngLat::new_deg(-120.95, 40.7)],
@@ -77,18 +87,27 @@
 //!
 //! #[cfg(feature = "batch")]
 //! {
-//!     // Encode multiple routes in parallel
-//!     let encoded_routes = encode_batch(&routes, 5).unwrap();
+//!     // Parallel encoding (beneficial for >100 routes)
+//!     let encoded_routes = encode_batch(&routes, 5)?;
 //!     
-//!     // Encode and simplify multiple routes in parallel
+//!     // Parallel encoding with simplification
 //!     let simplified_routes = encode_simplified_batch(
 //!         &routes,
-//!         1000.0,
+//!         1000.0, // 1km tolerance
 //!         SimplifyMethod::GreatCircleMeters,
 //!         5
-//!     ).unwrap();
+//!     )?;
 //! }
+//! # Ok(())
+//! # }
 //! ```
+//!
+//! # Precision Levels
+//!
+//! - **5**: ~1 meter accuracy, standard for most mapping applications
+//! - **6**: ~10 centimeter accuracy, used for high-precision applications
+//!
+//! Valid range: 1-11
 
 pub use rapidgeo_distance::LngLat;
 

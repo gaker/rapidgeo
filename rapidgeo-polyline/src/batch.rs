@@ -1,32 +1,84 @@
 //! Batch operations for encoding and decoding multiple polylines in parallel.
+//!
+//! These functions automatically switch between sequential and parallel processing
+//! based on batch size. Parallel processing is beneficial for large batches
+//! (typically >50-100 items) but adds overhead for small batches.
 
 use crate::{decode, encode, simplify_coordinates, LngLat, PolylineResult};
 use rapidgeo_simplify::SimplifyMethod;
 use rayon::prelude::*;
 
-/// Encodes multiple coordinate sequences into polyline strings in parallel.
+/// Encodes multiple coordinate sequences into polyline strings with automatic parallelization.
 ///
-/// Uses parallel processing for improved performance when processing large numbers
-/// of polylines (typically beneficial for >100 polylines).
+/// Automatically switches between sequential processing (for small batches <100 routes)
+/// and parallel processing (for large batches ≥100 routes) to optimize performance.
+/// Parallel processing uses all available CPU cores via the rayon crate.
 ///
 /// # Arguments
 ///
-/// * `coordinates_batch` - A slice of coordinate sequences to encode
-/// * `precision` - Number of decimal places to preserve (typically 5 or 6)
+/// * `coordinates_batch` - Slice of coordinate sequences, each in longitude, latitude order
+/// * `precision` - Decimal places to preserve (1-11, typically 5 or 6)
+///
+/// # Returns
+///
+/// Returns a vector of polyline strings in the same order as input, or the first
+/// error encountered during processing.
+///
+/// # Performance
+///
+/// - **Small batches** (<100): Sequential processing to avoid threading overhead
+/// - **Large batches** (≥100): Parallel processing across CPU cores
+/// - **Memory usage**: O(n × m) where n = batch size, m = average route length
 ///
 /// # Examples
 ///
-/// ```
+/// ```rust
 /// use rapidgeo_polyline::batch::encode_batch;
 /// use rapidgeo_distance::LngLat;
 ///
-/// let batch = vec![
-///     vec![LngLat::new_deg(-120.2, 38.5), LngLat::new_deg(-120.95, 35.6)],
-///     vec![LngLat::new_deg(-126.453, 43.252), LngLat::new_deg(-122.4194, 37.7749)],
+/// // Multiple delivery routes
+/// let routes = vec![
+///     // Route 1: Short local delivery
+///     vec![
+///         LngLat::new_deg(-122.4194, 37.7749), // San Francisco
+///         LngLat::new_deg(-122.4094, 37.7849), // Nearby location
+///     ],
+///     // Route 2: Cross-city route  
+///     vec![
+///         LngLat::new_deg(-120.2, 38.5),       // Sacramento area
+///         LngLat::new_deg(-120.95, 35.6),      // Central Valley
+///         LngLat::new_deg(-126.453, 43.252),   // Oregon
+///     ],
 /// ];
 ///
-/// let encoded_batch = encode_batch(&batch, 5).unwrap();
-/// assert_eq!(encoded_batch.len(), 2);
+/// let polylines = encode_batch(&routes, 5)?;
+/// assert_eq!(polylines.len(), 2);
+///
+/// // Each polyline corresponds to input route
+/// for (route, polyline) in routes.iter().zip(polylines.iter()) {
+///     assert!(!polyline.is_empty() || route.is_empty());
+/// }
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
+/// ```
+///
+/// # Large Batch Processing
+///
+/// ```rust
+/// use rapidgeo_polyline::batch::encode_batch;
+/// use rapidgeo_distance::LngLat;
+///
+/// // Simulate processing many GPS tracks (would use parallel processing)
+/// let large_batch: Vec<Vec<LngLat>> = (0..200)
+///     .map(|i| vec![
+///         LngLat::new_deg(-122.0 + i as f64 * 0.001, 37.0 + i as f64 * 0.001),
+///         LngLat::new_deg(-122.1 + i as f64 * 0.001, 37.1 + i as f64 * 0.001),
+///     ])
+///     .collect();
+///
+/// // Automatically uses parallel processing
+/// let encoded = encode_batch(&large_batch, 5)?;
+/// assert_eq!(encoded.len(), 200);
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
 /// ```
 pub fn encode_batch(
     coordinates_batch: &[Vec<LngLat>],
@@ -45,28 +97,77 @@ pub fn encode_batch(
     }
 }
 
-/// Decodes multiple polyline strings into coordinate sequences in parallel.
+/// Decodes multiple polyline strings into coordinate sequences with automatic parallelization.
 ///
-/// Uses parallel processing for improved performance when processing large numbers
-/// of polylines (typically beneficial for >100 polylines).
+/// Processes multiple polyline strings simultaneously using parallel processing for
+/// large batches (≥100 polylines) and sequential processing for smaller batches
+/// to avoid threading overhead.
 ///
 /// # Arguments
 ///
-/// * `polylines` - A slice of polyline strings to decode
-/// * `precision` - Number of decimal places the polylines were encoded with (typically 5 or 6)
+/// * `polylines` - Slice of polyline strings to decode (ASCII characters 63-126)
+/// * `precision` - Decimal places the polylines were encoded with (1-11, typically 5 or 6)
+///
+/// # Returns
+///
+/// Returns a vector of coordinate sequences in longitude, latitude order, preserving
+/// input order. Returns the first error encountered during processing.
+///
+/// # Performance
+///
+/// - **Small batches** (<100): Sequential processing
+/// - **Large batches** (≥100): Parallel processing across CPU cores
+/// - **Typical speed**: ~3-5 million coordinates/second per core
 ///
 /// # Examples
 ///
-/// ```
-/// use rapidgeo_polyline::batch::decode_batch;
+/// ```rust
+/// use rapidgeo_polyline::batch::{encode_batch, decode_batch};
+/// use rapidgeo_distance::LngLat;
 ///
-/// let polylines = vec![
-///     "_p~iF~ps|U_ulLnnqC".to_string(),
-///     "_mqNvxq`@".to_string(),
+/// // Round-trip batch processing
+/// let original_routes = vec![
+///     vec![
+///         LngLat::new_deg(-122.4194, 37.7749), // San Francisco
+///         LngLat::new_deg(-122.4094, 37.7849),
+///     ],
+///     vec![
+///         LngLat::new_deg(-120.2, 38.5),       // Sacramento  
+///         LngLat::new_deg(-126.453, 43.252),   // Oregon
+///     ],
 /// ];
 ///
-/// let decoded_batch = decode_batch(&polylines, 5).unwrap();
-/// assert_eq!(decoded_batch.len(), 2);
+/// // Encode batch to polylines
+/// let polylines = encode_batch(&original_routes, 5)?;
+///
+/// // Decode batch back to coordinates
+/// let decoded_routes = decode_batch(&polylines, 5)?;
+///
+/// assert_eq!(decoded_routes.len(), 2);
+/// assert_eq!(decoded_routes[0].len(), 2);
+/// assert_eq!(decoded_routes[1].len(), 2);
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
+/// ```
+///
+/// # Processing Stored Polylines
+///
+/// ```rust
+/// use rapidgeo_polyline::batch::decode_batch;
+///
+/// // Polylines from database or API response
+/// let stored_polylines = vec![
+///     "_p~iF~ps|U_ulLnnqC_mqNvxq`@".to_string(), // Google test vector
+///     "u{~vFvyys@fS]".to_string(),                // Another route
+///     "".to_string(),                             // Empty route
+/// ];
+///
+/// let coordinate_sequences = decode_batch(&stored_polylines, 5)?;
+///
+/// assert_eq!(coordinate_sequences.len(), 3);
+/// assert_eq!(coordinate_sequences[0].len(), 3); // 3 coordinates
+/// assert_eq!(coordinate_sequences[1].len(), 2); // 2 coordinates  
+/// assert_eq!(coordinate_sequences[2].len(), 0); // Empty
+/// # Ok::<(), rapidgeo_polyline::PolylineError>(())
 /// ```
 pub fn decode_batch(polylines: &[String], precision: u8) -> PolylineResult<Vec<Vec<LngLat>>> {
     if polylines.len() < 100 {

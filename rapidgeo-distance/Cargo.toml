@@ -12,6 +12,10 @@ categories = ["science::geo", "algorithms"]
 documentation = "https://docs.rs/rapidgeo-distance"
 readme = "README.md"
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [features]
 default = []
 vincenty = []
