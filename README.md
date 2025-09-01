@@ -3,7 +3,6 @@
 [![CI](https://github.com/gaker/rapidgeo/workflows/CI/badge.svg)](https://github.com/gaker/rapidgeo/actions)
 [![Coverage](https://codecov.io/gh/gaker/rapidgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/gaker/rapidgeo)
 [![PyPI](https://img.shields.io/pypi/v/rapidgeo.svg)](https://pypi.org/project/rapidgeo/)
-[![Crates.io](https://img.shields.io/crates/v/rapidgeo-distance.svg)](https://crates.io/crates/rapidgeo-distance)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE-APACHE)
 
 Geographic distance calculations, polyline encoding/decoding, and coordinate simplification libraries for Rust and Python.
@@ -26,6 +25,7 @@ This repository contains four crates:
 rapidgeo-distance = "0.1"
 rapidgeo-polyline = "0.1"
 rapidgeo-simplify = "0.1"
+rapidgeo-similarity = "0.1"
 ```
 
 ### Python Package

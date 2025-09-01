@@ -1,5 +1,9 @@
 # rapidgeo-similarity
 
+[![Crates.io](https://img.shields.io/crates/v/rapidgeo-similarity)](https://crates.io/crates/rapidgeo-similarity)
+[![Documentation](https://docs.rs/rapidgeo-similarity/badge.svg)](https://docs.rs/rapidgeo-similarity)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/gaker/rapidgeo)
+
 Curve similarity measures for geographic polylines. Measures how similar two paths are using geometric algorithms.
 
 ## Installation
