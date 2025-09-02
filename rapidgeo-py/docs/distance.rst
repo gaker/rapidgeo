@@ -36,8 +36,8 @@ Geographic distances calculate the actual distance between points on Earth's sur
 
 **Algorithm Selection:**
 
-* **Haversine**: Best for most applications. 0.5% accuracy for distances under 1000km, very fast computation.
-* **Vincenty**: Use when you need maximum precision (1mm accuracy globally), but slower than Haversine.
+* **Haversine**: Good for most applications. Assumes spherical Earth.
+* **Vincenty**: Higher precision using ellipsoidal Earth model. More computation required.
 
 Example:
 
@@ -68,8 +68,8 @@ Planar distances treat coordinates as points on a flat plane, ignoring Earth's c
 
 **Use Cases:**
 
-* Very fast distance comparisons (when you only need relative distances)
-* Small geographic areas where Earth's curvature is negligible
+* Comparing distances when you only need relative ordering
+* Small geographic areas where Earth's curvature doesn't matter
 * Point-to-line segment calculations
 
 Example:
@@ -140,22 +140,21 @@ When rapidgeo is compiled with NumPy support, additional functions are available
     except ImportError:
         print("NumPy support not available")
 
-Performance Characteristics
----------------------------
+Performance Notes
+-----------------
 
-**Distance Algorithms (2 points):**
+**Algorithm Speed:**
 
-* **Euclidean**: ~10ns per calculation
-* **Haversine**: ~50ns per calculation  
-* **Vincenty**: ~500ns per calculation
+* Euclidean is fastest
+* Haversine is moderate speed
+* Vincenty takes the most computation
 
 **Batch Operations:**
 
-* Batch functions are optimized for processing large datasets
-* Memory-efficient iteration over results
-* Automatic SIMD optimizations where available
+* Process multiple items at once for better efficiency
+* Iterator-based results to manage memory
 
-**Memory Usage:**
+**Memory:**
 
-* ``LngLat``: 16 bytes (2 x f64)
-* Batch operations: O(1) memory overhead beyond input data
+* Each ``LngLat`` uses 16 bytes (two 64-bit floats)
+* Batch operations don't duplicate input data unnecessarily

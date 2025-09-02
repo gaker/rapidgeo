@@ -208,17 +208,11 @@ Algorithm Comparison
 * Assessing simplification quality
 * Measuring maximum deviation between curves
 
-**Performance Characteristics:**
+**Algorithm Complexity:**
 
-+------------------+------------------+----------------------+
-| Algorithm        | Time Complexity  | Memory Complexity    |
-+==================+==================+======================+
-| Fréchet          | O(n × m)         | O(n × m)             |
-+------------------+------------------+----------------------+
-| Hausdorff        | O(n × m)         | O(1)                 |
-+------------------+------------------+----------------------+
-
-Where n and m are the lengths of the two input curves.
+* **Fréchet**: Requires storing intermediate results, memory usage grows with input size
+* **Hausdorff**: Uses constant memory regardless of input size
+* Both algorithms compare each point in one curve to points in the other curve
 
 Security Limits
 ---------------

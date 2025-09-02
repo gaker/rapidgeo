@@ -1,7 +1,7 @@
 Performance Guide
 =================
 
-rapidgeo provides fast geographic computations through Rust implementations with Python bindings.
+This guide helps you choose the right algorithms and approaches for your use case.
 
 Algorithm Characteristics
 --------------------------
@@ -10,19 +10,19 @@ Distance Calculations
 ~~~~~~~~~~~~~~~~~~~~~
 
 **Euclidean Distance**
-- Fastest option for flat-plane calculations
-- Suitable for small geographic areas or projected coordinates
-- Not accurate for geographic coordinates over long distances
+- Treats coordinates as flat X,Y points
+- Use for small geographic areas or projected coordinates
+- Doesn't account for Earth's curvature
 
 **Haversine Distance** 
-- Spherical Earth approximation
-- Good balance of speed and accuracy for most use cases
-- Less accurate at very long distances
+- Assumes Earth is a sphere
+- Good for most geographic distance calculations
+- Less accurate at very long distances due to spherical approximation
 
 **Vincenty Distance**
-- Ellipsoidal Earth model (WGS84)
-- Highest accuracy for geographic distances
-- Slower than Haversine but more precise
+- Uses ellipsoidal Earth model (WGS84)
+- More accurate for geographic distances
+- More computational work than Haversine
 
 Optimization Strategies
 ------------------------
@@ -61,6 +61,8 @@ For large datasets:
 Best Practices
 --------------
 
-- Profile your specific use case rather than assuming performance characteristics
-- Choose precision levels appropriate for your data (5 vs 6 decimal places for polylines)
-- Use parallel batch operations for large datasets when available
+- Choose the right algorithm for your accuracy needs
+- Use batch operations when processing multiple items
+- Process large datasets in chunks to manage memory
+- Test performance with your actual data rather than making assumptions
+- For polylines, use precision 5 unless you need sub-meter accuracy

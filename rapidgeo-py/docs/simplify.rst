@@ -181,26 +181,27 @@ Algorithm Details
 * The algorithm converts between coordinate degrees and meters internally
 * For projected coordinates, consider using 'euclidean' method with tolerance in coordinate units
 
-Performance
------------
+Implementation Notes
+--------------------
 
-**Simplification Speed:**
+**Distance Methods:**
 
-* **great_circle**: ~10μs per point (most accurate)
-* **planar**: ~3μs per point (good accuracy/speed balance)
-* **euclidean**: ~1μs per point (fastest)
+* **great_circle**: Most accurate for geographic data
+* **planar**: Good balance of accuracy and computation
+* **euclidean**: Fastest option
 
 **Memory Usage:**
 
-* **Single polyline**: O(n) where n is input points
-* **Batch operations**: Processes one polyline at a time
-* **Return masks**: Additional O(n) boolean array per polyline
+* Memory scales with input size
+* Batch operations process one polyline at a time
+* Optional masks require additional storage per polyline
 
-**Typical Reductions:**
+**Typical Results:**
 
-* **GPS tracks**: 50-80% point reduction with 5-10m tolerance
-* **Coastlines**: 80-95% reduction with appropriate tolerance
-* **Building outlines**: 30-60% reduction while preserving shape
+Results depend heavily on your data and tolerance:
+* GPS tracks with noise: Often significant point reduction
+* Smooth curves: Less reduction
+* Detailed coastlines: Varies widely with tolerance
 
 Choosing Tolerance
 ------------------

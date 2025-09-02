@@ -15,7 +15,7 @@ try:
     encode_batch = _polyline.py_encode_batch
     decode_batch = _polyline.py_decode_batch
     encode_simplified_batch = _polyline.py_encode_simplified_batch
-    encode_column = _polyline.py_encode_column  # BLAZING FAST pandas/Spark column encoding
+    encode_column = _polyline.py_encode_column  # Optimized pandas/Spark column encoding
 except AttributeError:
     # Batch operations not available
     pass

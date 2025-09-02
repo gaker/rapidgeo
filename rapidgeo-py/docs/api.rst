@@ -42,6 +42,14 @@ Batch distance operations.
 .. automodule:: rapidgeo.distance.batch
    :members:
 
+rapidgeo.formats
+----------------
+
+Coordinate format detection and conversion utilities.
+
+.. automodule:: rapidgeo.formats
+   :members:
+
 rapidgeo.polyline
 -----------------
 

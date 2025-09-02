@@ -61,6 +61,25 @@ let point = LngLat::new_deg(longitude, latitude);
 let (lng_rad, lat_rad) = point.to_radians();
 ```
 
+### Coordinate Format Detection
+
+The crate automatically detects and converts coordinate data from various formats (tuples, flat arrays, GeoJSON) to the internal `LngLat` representation:
+
+```rust
+use rapidgeo_distance::formats::{coords_to_lnglat_vec, CoordinateInput};
+
+// Automatically detects lng,lat vs lat,lng ordering
+let coords = vec![
+    (37.7749, -122.4194),  // Latitude,longitude format (detected)
+    (40.7128, -74.0060),   // Automatically corrected to lng,lat
+];
+
+let input = CoordinateInput::Tuples(coords);
+let lnglat_coords = coords_to_lnglat_vec(&input);
+```
+
+See [Coordinate Format Documentation](docs/coordinate-formats.md) for detailed examples of supported formats.
+
 ### Geodesic Distances (Earth-Aware)
 
 ```rust

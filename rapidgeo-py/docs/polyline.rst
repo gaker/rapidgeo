@@ -159,17 +159,17 @@ Algorithm Details
 * Tolerance specified in meters (real-world distance)  
 * Points are retained if they deviate more than tolerance from the simplified line
 
-Performance
------------
+Implementation Notes
+--------------------
 
-**Encoding/Decoding Speed:**
+**Processing:**
 
-* Simple encode/decode: ~1μs per point
-* Batch operations: ~0.5μs per point (better cache usage)
-* Simplification adds ~2μs per point
+* Batch operations handle multiple polylines efficiently
+* Simplification uses Douglas-Peucker algorithm
+* Memory usage scales with input size
 
-**Memory Usage:**
+**Precision Trade-offs:**
 
-* Encoding: O(n) where n is number of points
-* Decoding: O(m) where m is length of polyline string
-* Batch operations: Processes one polyline at a time (constant memory)
+* Higher precision = more accurate coordinates, longer strings
+* Lower precision = shorter strings, some coordinate rounding
+* Choose based on your accuracy requirements

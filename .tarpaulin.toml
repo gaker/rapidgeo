@@ -1,6 +1,7 @@
 [default]
 workspace = true
 exclude = ["rapidgeo-py"] 
+exclude-files = ["rapidgeo-py/*"]
 fail-under = 80.0
 all-features = true
 [report]

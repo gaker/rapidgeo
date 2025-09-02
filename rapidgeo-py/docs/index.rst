@@ -1,9 +1,9 @@
 rapidgeo documentation
 ======================
 
-Fast geographic and planar distance calculations for Python.
+Geographic calculations for Python.
 
-rapidgeo is a Python library built with Rust that provides high-performance geographic and planar distance calculations. It supports various distance algorithms including Haversine, Vincenty, and Euclidean distance calculations, along with polyline encoding/decoding, Douglas-Peucker simplification, and curve similarity measures.
+rapidgeo provides distance calculations, polyline encoding/decoding, simplification, and similarity measures for coordinate data. Built with Rust bindings for reliable performance.
 
 Installation
 ------------
@@ -29,13 +29,15 @@ Quick Start
     distance = haversine(sf, nyc)
     print(f"Distance: {distance / 1000:.1f} km")  # ~4,130 km
 
-Key Features
+What it does
 ------------
 
-* **Fast**: Rust-based implementation for maximum performance
-* **Accurate**: Multiple distance algorithms for different precision needs
-* **Flexible**: Support for batch operations and NumPy arrays
-* **Complete**: Distance calculation, polyline encoding, simplification, and similarity measures
+* Distance calculations with multiple algorithms (Haversine, Vincenty, Euclidean)
+* Google Polyline encoding and decoding
+* Line simplification using Douglas-Peucker algorithm  
+* Curve similarity measures (Fréchet and Hausdorff distances)
+* Batch operations for processing multiple datasets
+* Optional NumPy integration
 
 Coordinate System
 -----------------
@@ -56,11 +58,15 @@ Contents
 .. toctree::
    :maxdepth: 2
    
+   getting-started
+   formats
    distance
    polyline
    simplify
    similarity
+   examples
    performance
+   troubleshooting
    api
 
 License

@@ -483,10 +483,6 @@ mod tests {
         assert!(d23 <= d12 + d13 + 1e-12);
     }
 
-    // ========================================================================
-    // COMPREHENSIVE MATHEMATICAL CORRECTNESS TESTS
-    // ========================================================================
-
     #[test]
     fn test_euclidean_pythagorean_theorem_verification() {
         // Verify Euclidean distance calculations conform to Pythagorean theorem

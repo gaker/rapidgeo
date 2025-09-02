@@ -234,6 +234,31 @@ fn perform_vincenty_iteration_step(
 }
 
 #[inline]
+fn handle_iteration_result(
+    iteration_result: Result<(f64, VincentyIteration), VincentyIteration>,
+) -> Result<Option<(f64, VincentyIteration)>, VincentyIteration> {
+    match iteration_result {
+        Err(result) => Err(result), // Early termination case (sin_sigma <= EPS)
+        Ok((new_lambda, iteration)) => Ok(Some((new_lambda, iteration))),
+    }
+}
+
+#[inline]
+fn check_convergence(new_lambda: f64, lambda: f64) -> bool {
+    const EPS: f64 = 1e-12;
+    (new_lambda - lambda).abs() < EPS
+}
+
+#[inline]
+fn check_iteration_limit(iter_limit: &mut i32) -> Result<(), VincentyError> {
+    *iter_limit -= 1;
+    if *iter_limit == 0 {
+        return Err(VincentyError::DidNotConverge);
+    }
+    Ok(())
+}
+
+#[inline]
 fn vincenty_iterate(
     l0: f64,
     sin_u1: f64,
@@ -241,25 +266,25 @@ fn vincenty_iterate(
     sin_u2: f64,
     cos_u2: f64,
 ) -> Result<VincentyIteration, VincentyError> {
-    const EPS: f64 = 1e-12;
     let mut lambda = l0;
     let mut iter_limit = 100;
 
     loop {
-        match perform_vincenty_iteration_step(lambda, l0, sin_u1, cos_u1, sin_u2, cos_u2) {
-            Err(result) => return Ok(result), // Early termination case (sin_sigma <= EPS)
-            Ok((new_lambda, iteration)) => {
-                if (new_lambda - lambda).abs() < EPS {
-                    return Ok(iteration); // Converged
+        let iteration_result =
+            perform_vincenty_iteration_step(lambda, l0, sin_u1, cos_u1, sin_u2, cos_u2);
+
+        match handle_iteration_result(iteration_result) {
+            Err(result) => return Ok(result), // Early termination case
+            Ok(Some((new_lambda, iteration))) => {
+                if check_convergence(new_lambda, lambda) {
+                    return Ok(iteration);
                 }
                 lambda = new_lambda;
             }
+            Ok(None) => unreachable!(), // handle_iteration_result never returns Ok(None)
         }
 
-        iter_limit -= 1;
-        if iter_limit == 0 {
-            return Err(VincentyError::DidNotConverge);
-        }
+        check_iteration_limit(&mut iter_limit)?;
     }
 }
 
@@ -288,28 +313,49 @@ fn compute_vincenty_correction(iteration: &VincentyIteration) -> f64 {
     B * big_a * (iteration.sigma - delta_sigma)
 }
 
+type CoordinateParams = (f64, f64, f64, f64, f64, f64);
+
 #[inline]
-pub fn vincenty_distance_m(a: LngLat, b: LngLat) -> Result<f64, VincentyError> {
+fn preprocess_coordinates(a: LngLat, b: LngLat) -> Result<Option<CoordinateParams>, VincentyError> {
     validate_vincenty_inputs(a, b)?;
 
     let (lng1_rad, lat1_rad) = a.to_radians();
     let (lng2_rad, lat2_rad) = b.to_radians();
 
     if check_coincident_points(lng1_rad, lat1_rad, lng2_rad, lat2_rad) {
-        return Ok(0.0);
+        return Ok(None); // Indicates coincident points, distance is 0
     }
 
     let l0 = wrap_pi(lng2_rad - lng1_rad);
     let (_u1, _u2, sin_u1, cos_u1, sin_u2, cos_u2) =
         compute_reduced_latitudes_and_trig(lat1_rad, lat2_rad);
 
-    let iteration = vincenty_iterate(l0, sin_u1, cos_u1, sin_u2, cos_u2)?;
+    Ok(Some((l0, sin_u1, cos_u1, sin_u2, cos_u2, 0.0))) // Last 0.0 is placeholder
+}
 
+#[inline]
+fn check_final_iteration_state(iteration: &VincentyIteration) -> Option<f64> {
     if iteration.sin_sigma == 0.0 {
-        return Ok(0.0);
+        Some(0.0)
+    } else {
+        None
     }
+}
 
-    Ok(compute_vincenty_correction(&iteration))
+#[inline]
+pub fn vincenty_distance_m(a: LngLat, b: LngLat) -> Result<f64, VincentyError> {
+    match preprocess_coordinates(a, b)? {
+        None => Ok(0.0), // Coincident points
+        Some((l0, sin_u1, cos_u1, sin_u2, cos_u2, _)) => {
+            let iteration = vincenty_iterate(l0, sin_u1, cos_u1, sin_u2, cos_u2)?;
+
+            if let Some(distance) = check_final_iteration_state(&iteration) {
+                return Ok(distance);
+            }
+
+            Ok(compute_vincenty_correction(&iteration))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -523,6 +569,156 @@ mod tests {
 
         let distance = result.unwrap();
         assert!(distance > 0.0 && distance < 1e-4);
+    }
+
+    #[test]
+    fn test_handle_iteration_result() {
+        // Test early termination case (Err input)
+        let early_termination = VincentyIteration {
+            cos_sq_alpha: 0.0,
+            sin_sigma: 0.0,
+            cos_sigma: 1.0,
+            sigma: 0.0,
+            cos_2sigma_m: 0.0,
+        };
+        let input = Err(early_termination);
+        let result = handle_iteration_result(input);
+        match result {
+            Err(iteration) => {
+                assert_eq!(iteration.sin_sigma, 0.0);
+                assert_eq!(iteration.cos_sigma, 1.0);
+            }
+            Ok(_) => panic!("Expected Err, got Ok"),
+        }
+
+        // Test normal iteration case (Ok input)
+        let normal_iteration = VincentyIteration {
+            cos_sq_alpha: 0.5,
+            sin_sigma: 0.8,
+            cos_sigma: 0.6,
+            sigma: 0.927,
+            cos_2sigma_m: 0.3,
+        };
+        let input = Ok((1.5, normal_iteration));
+        let result = handle_iteration_result(input);
+        match result {
+            Ok(Some((lambda, iteration))) => {
+                assert_eq!(lambda, 1.5);
+                assert_eq!(iteration.sin_sigma, 0.8);
+                assert_eq!(iteration.cos_sigma, 0.6);
+            }
+            _ => panic!("Expected Ok(Some(_)), got something else"),
+        }
+    }
+
+    #[test]
+    fn test_check_convergence() {
+        const EPS: f64 = 1e-12;
+
+        // Test convergence (difference less than EPS)
+        assert!(check_convergence(1.0, 1.0 + EPS * 0.5));
+        assert!(check_convergence(0.0, EPS * 0.9));
+
+        // Test non-convergence (difference greater than EPS)
+        assert!(!check_convergence(1.0, 1.0 + EPS * 2.0));
+        assert!(!check_convergence(0.0, EPS * 2.0));
+        assert!(!check_convergence(1.0, 2.0));
+    }
+
+    #[test]
+    fn test_check_iteration_limit() {
+        // Test normal case (limit not reached)
+        let mut limit = 5;
+        assert!(check_iteration_limit(&mut limit).is_ok());
+        assert_eq!(limit, 4);
+
+        // Test limit approaching zero (should still be ok)
+        let mut limit = 2;
+        assert!(check_iteration_limit(&mut limit).is_ok());
+        assert_eq!(limit, 1);
+
+        // Test limit reached (should return error) - when limit is 1, it becomes 0 after decrement, triggering error
+        let mut limit = 1;
+        match check_iteration_limit(&mut limit) {
+            Err(VincentyError::DidNotConverge) => (),
+            _ => panic!("Expected DidNotConverge error"),
+        }
+        assert_eq!(limit, 0);
+
+        // Test limit already zero - this becomes -1 after decrement, so it does NOT trigger the error condition
+        let mut limit = 0;
+        assert!(check_iteration_limit(&mut limit).is_ok());
+        assert_eq!(limit, -1);
+    }
+
+    #[test]
+    fn test_preprocess_coordinates() {
+        // Test coincident points (should return None)
+        let a = LngLat::new_deg(0.0, 0.0);
+        let b = LngLat::new_deg(0.0, 0.0);
+        match preprocess_coordinates(a, b).unwrap() {
+            None => (), // Expected for coincident points
+            Some(_) => panic!("Expected None for coincident points"),
+        }
+
+        // Test distinct points (should return Some)
+        let a = LngLat::new_deg(-122.4194, 37.7749);
+        let b = LngLat::new_deg(-74.0060, 40.7128);
+        match preprocess_coordinates(a, b).unwrap() {
+            Some((l0, sin_u1, cos_u1, sin_u2, cos_u2, _)) => {
+                // Verify l0 is wrapped properly
+                assert!(l0 >= -std::f64::consts::PI);
+                assert!(l0 <= std::f64::consts::PI);
+
+                // Verify trig values are in valid ranges
+                assert!(sin_u1.abs() <= 1.0);
+                assert!(cos_u1.abs() <= 1.0);
+                assert!(sin_u2.abs() <= 1.0);
+                assert!(cos_u2.abs() <= 1.0);
+
+                // Verify trig identity: sin^2 + cos^2 = 1
+                assert!((sin_u1 * sin_u1 + cos_u1 * cos_u1 - 1.0).abs() < 1e-10);
+                assert!((sin_u2 * sin_u2 + cos_u2 * cos_u2 - 1.0).abs() < 1e-10);
+            }
+            None => panic!("Expected Some for distinct points"),
+        }
+
+        // Test invalid coordinates (should return error)
+        let a_invalid = LngLat::new_deg(f64::NAN, 37.0);
+        let b_valid = LngLat::new_deg(-74.0, 40.0);
+        match preprocess_coordinates(a_invalid, b_valid) {
+            Err(VincentyError::Domain) => (),
+            _ => panic!("Expected Domain error for invalid coordinates"),
+        }
+    }
+
+    #[test]
+    fn test_check_final_iteration_state() {
+        // Test case where sin_sigma == 0.0 (should return Some(0.0))
+        let zero_iteration = VincentyIteration {
+            cos_sq_alpha: 0.5,
+            sin_sigma: 0.0, // This triggers the early return
+            cos_sigma: 1.0,
+            sigma: 0.0,
+            cos_2sigma_m: 0.0,
+        };
+        match check_final_iteration_state(&zero_iteration) {
+            Some(distance) => assert_eq!(distance, 0.0),
+            None => panic!("Expected Some(0.0) for zero sin_sigma"),
+        }
+
+        // Test case where sin_sigma != 0.0 (should return None)
+        let normal_iteration = VincentyIteration {
+            cos_sq_alpha: 0.5,
+            sin_sigma: 0.8, // Non-zero, so should return None
+            cos_sigma: 0.6,
+            sigma: 0.927,
+            cos_2sigma_m: 0.3,
+        };
+        match check_final_iteration_state(&normal_iteration) {
+            None => (), // Expected
+            Some(_) => panic!("Expected None for non-zero sin_sigma"),
+        }
     }
 
     #[test]

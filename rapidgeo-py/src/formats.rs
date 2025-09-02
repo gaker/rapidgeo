@@ -9,9 +9,9 @@
 //!
 //! # Supported Formats
 //!
-//! - **Tuple format**: `[(lng, lat), (lng, lat), ...]`
-//! - **Flat array**: `[lng1, lat1, lng2, lat2, ...]`  
-//! - **GeoJSON-like**: `[{"coordinates": [lng, lat]}, ...]`
+//! - **Tuple format**: ``[(lng, lat), (lng, lat), ...]``
+//! - **Flat array**: ``[lng1, lat1, lng2, lat2, ...]``  
+//! - **GeoJSON-like**: ``[{"coordinates": [lng, lat]}, ...]``
 //!
 //! # Performance Notes
 //!
@@ -36,17 +36,17 @@ use crate::distance::LngLat;
 ///
 /// # Arguments
 ///
-/// * `coords` - Python coordinate data in one of the supported formats
+/// * ``coords`` - Python coordinate data in one of the supported formats
 ///
 /// # Returns
 ///
-/// A vector of `LngLat` objects representing the coordinates in longitude/latitude order.
+/// A vector of ``LngLat`` objects representing the coordinates in longitude/latitude order.
 ///
 /// # Errors
 ///
-/// * `PyTypeError` - If the input is not a list or cannot be converted
-/// * `PyValueError` - If coordinate data is malformed (e.g., wrong number of elements)
-/// * `PyKeyError` - If GeoJSON objects are missing required keys
+/// * ``PyTypeError`` - If the input is not a list or cannot be converted
+/// * ``PyValueError`` - If coordinate data is malformed (e.g., wrong number of elements)
+/// * ``PyKeyError`` - If GeoJSON objects are missing required keys
 ///
 /// # Format Detection
 ///
@@ -57,27 +57,24 @@ use crate::distance::LngLat;
 ///
 /// # Examples
 ///
-/// ## Tuple Format
-/// ```python
-/// coords = [(1.0, 2.0), (3.0, 4.0)]
-/// result = coords_to_lnglat(coords)  # Returns [LngLat(1.0, 2.0), LngLat(3.0, 4.0)]
-/// ```
+/// Tuple Format::
 ///
-/// ## Flat Array Format  
-/// ```python
-/// coords = [1.0, 2.0, 3.0, 4.0]  # lng1, lat1, lng2, lat2
-/// result = coords_to_lnglat(coords)  # Returns [LngLat(1.0, 2.0), LngLat(3.0, 4.0)]
-/// ```
+///     coords = [(1.0, 2.0), (3.0, 4.0)]
+///     result = coords_to_lnglat(coords)  # Returns [LngLat(1.0, 2.0), LngLat(3.0, 4.0)]
 ///
-/// ## GeoJSON-like Format
-/// ```python
-/// coords = [
-///     {"coordinates": [1.0, 2.0]},
-///     {"coordinates": [3.0, 4.0]}
-/// ]
-/// result = coords_to_lnglat(coords)  # Returns [LngLat(1.0, 2.0), LngLat(3.0, 4.0)]
-/// ```
+/// Flat Array Format::
 ///
+///     coords = [1.0, 2.0, 3.0, 4.0]  # lng1, lat1, lng2, lat2
+///     result = coords_to_lnglat(coords)  # Returns [LngLat(1.0, 2.0), LngLat(3.0, 4.0)]
+///
+/// GeoJSON-like Format::
+///
+///     coords = [
+///         {"coordinates": [1.0, 2.0]},
+///         {"coordinates": [3.0, 4.0]}
+///     ]
+///     result = coords_to_lnglat(coords)  # Returns [LngLat(1.0, 2.0), LngLat(3.0, 4.0)]
+///     
 /// # Performance
 ///
 /// The function performs minimal format detection overhead and delegates bulk
@@ -98,15 +95,15 @@ pub fn coords_to_lnglat(_py: Python, coords: &Bound<'_, PyAny>) -> PyResult<Vec<
 ///
 /// # Arguments
 ///
-/// * `coords` - Python object expected to be a list of coordinates
+/// * ``coords`` - Python object expected to be a list of coordinates
 ///
 /// # Returns
 ///
-/// A `CoordinateInput` enum variant containing the parsed coordinate data.
+/// A ``CoordinateInput`` enum variant containing the parsed coordinate data.
 ///
 /// # Errors
 ///
-/// * `PyTypeError` - If the input cannot be converted to a Python list
+/// * ``PyTypeError`` - If the input cannot be converted to a Python list
 ///
 /// # Format Detection Logic
 ///
@@ -161,28 +158,28 @@ pub fn python_to_coordinate_input(coords: &Bound<'_, PyAny>) -> PyResult<Coordin
     parse_tuple_list(py_list)
 }
 
-/// Parses a flat array of coordinates in the format `[lng1, lat1, lng2, lat2, ...]`.
+/// Parses a flat array of coordinates in the format ``[lng1, lat1, lng2, lat2, ...]``.
 ///
 /// Extracts floating-point coordinate values from a Python list where coordinates
 /// are stored as alternating longitude and latitude values.
 ///
 /// # Arguments
 ///
-/// * `py_list` - Python list containing numeric coordinate values
+/// * ``py_list`` - Python list containing numeric coordinate values
 ///
 /// # Returns
 ///
-/// A `CoordinateInput::FlatArray` containing the extracted coordinate values.
+/// A ``CoordinateInput::FlatArray`` containing the extracted coordinate values.
 ///
 /// # Errors
 ///
-/// * `PyTypeError` - If any list element cannot be converted to f64
+/// * ``PyTypeError`` - If any list element cannot be converted to f64
 ///
 /// # Expected Format
 ///
-/// ```python
-/// coords = [lng1, lat1, lng2, lat2, lng3, lat3, ...]
-/// ```
+/// ::
+///
+///     coords = [lng1, lat1, lng2, lat2, lng3, lat3, ...]
 ///
 /// The list length should be even (pairs of lng/lat values).
 #[inline]
@@ -201,21 +198,21 @@ fn parse_flat_array(py_list: &Bound<'_, PyList>) -> PyResult<CoordinateInput> {
 ///
 /// Processes a list where each element is a dictionary containing coordinate
 /// data in GeoJSON Point format. Each object must have a "coordinates" key
-/// with a two-element array of `[longitude, latitude]` values.
+/// with a two-element array of ``[longitude, latitude]`` values.
 ///
 /// # Arguments
 ///
-/// * `py_list` - Python list of dictionary objects with GeoJSON structure
+/// * ``py_list`` - Python list of dictionary objects with GeoJSON structure
 ///
 /// # Returns
 ///
-/// A `CoordinateInput::GeoJson` containing the parsed GeoPoint objects.
+/// A ``CoordinateInput::GeoJson`` containing the parsed GeoPoint objects.
 ///
 /// # Errors
 ///
-/// * `PyTypeError` - If list elements are not dictionaries
-/// * `PyKeyError` - If any dictionary lacks a "coordinates" key
-/// * `PyValueError` - If coordinate arrays don't have exactly 2 elements
+/// * ``PyTypeError`` - If list elements are not dictionaries
+/// * ``PyKeyError`` - If any dictionary lacks a "coordinates" key
+/// * ``PyValueError`` - If coordinate arrays don't have exactly 2 elements
 ///
 /// # Expected Format
 ///

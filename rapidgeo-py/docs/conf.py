@@ -55,8 +55,8 @@ autodoc_default_options = {
 
 # Suppress specific warnings
 suppress_warnings = [
-    'ref.python',  # Suppress cross-reference warnings for Python objects
-    'toc.not_included',  # Suppress toctree not included warnings
+    # 'ref.python',  # Suppress cross-reference warnings for Python objects
+    # 'toc.not_included',  # Suppress toctree not included warnings
 ]
 
 # Autodoc type hints configuration
@@ -106,28 +106,34 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
 
 # HTML output options
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
-# Theme options
-html_theme_options = {
-    'canonical_url': '',
-    'analytics_id': '',
-    'logo_only': False,
-    'prev_next_buttons_location': 'bottom',
-    'style_external_links': False,
-    'vcs_pageview_mode': '',
-    'style_nav_header_background': 'white',
-    # Toc options
-    'collapse_navigation': True,
-    'sticky_navigation': True,
-    'navigation_depth': 4,
-    'includehidden': True,
-    'titles_only': False
+# # Theme options
+# html_theme_options = {
+#     'canonical_url': '',
+#     'analytics_id': '',
+#     'logo_only': False,
+#     'prev_next_buttons_location': 'bottom',
+#     'style_external_links': False,
+#     'vcs_pageview_mode': '',
+#     'style_nav_header_background': 'white',
+#     # Toc options
+#     'collapse_navigation': True,
+#     'sticky_navigation': True,
+#     'navigation_depth': 4,
+#     'includehidden': True,
+#     'titles_only': False
+# }
+
+html_context = {
+    "display_github": True, # Integrate GitHub
+    "github_user": "gaker", # Username
+    "github_repo": "rapidgeo", # Repo name
+    "github_version": "main", # Version
+    "conf_py_path": "/rapidgeo-py/docs", # Path in the checkout to the docs root
 }
 
 # Add any extra paths that contain custom files (such as robots.txt or

@@ -4,7 +4,7 @@
 [![Documentation](https://img.shields.io/badge/docs-rapidgeo-blue.svg)](https://rapidgeo.readthedocs.io/)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
-Fast geographic algorithms for Python, including distance calculations, polyline encoding/decoding, line simplification, and curve similarity measures.
+Geographic calculations for Python: distance calculations, polyline encoding/decoding, line simplification, and curve similarity measures.
 
 ## Installation
 
@@ -28,29 +28,28 @@ distance = haversine(sf, nyc)
 print(f"Distance: {distance / 1000:.1f} km")  # ~4,130 km
 ```
 
-## Features
+## What it does
 
 **Distance Calculations:**
-- Haversine: Fast, 0.5% accuracy for distances <1000km
-- Vincenty: High precision, 1mm accuracy globally  
-- Euclidean: Planar distance for projected coordinates
-- Batch operations for processing large datasets
+- Haversine: Spherical Earth approximation, good for most uses
+- Vincenty: Ellipsoidal Earth model for higher precision  
+- Euclidean: Flat plane calculations
+- Batch operations for multiple points
 
 **Polyline Encoding/Decoding:**
 - Google Polyline Algorithm implementation
-- Compress GPS tracks for efficient storage/transmission
-- Full precision support
+- Compress coordinate sequences to text strings
+- Configurable precision levels
 
 **Line Simplification:**
 - Douglas-Peucker algorithm
-- Reduce GPS track complexity while preserving shape
-- Configurable tolerance thresholds
+- Reduce point count while preserving shape
+- Configurable distance tolerance
 
 **Curve Similarity:**
-- Fréchet distance: Compare trajectories (considers point order)
-- Hausdorff distance: Compare shapes (order-independent)  
-- Early termination for threshold-based queries
-- Ideal for GPS track analysis and map matching
+- Fréchet distance: Compare trajectories (point order matters)
+- Hausdorff distance: Compare shapes (point order doesn't matter)  
+- Useful for GPS track analysis and route comparison
 
 ## Coordinate System
 
