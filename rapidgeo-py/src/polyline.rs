@@ -213,16 +213,48 @@ fn py_simplify_polyline(
 #[cfg(feature = "batch")]
 #[pyfunction]
 #[pyo3(signature = (coordinates_list, precision = 5))]
-fn py_encode_batch(coordinates_list: Vec<Vec<LngLat>>, precision: u8) -> PyResult<Vec<String>> {
-    let coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = coordinates_list
-        .iter()
-        .map(|coords| {
-            coords
-                .iter()
-                .map(|c| rapidgeo_distance::LngLat::new_deg(c.lng(), c.lat()))
-                .collect()
-        })
-        .collect();
+fn py_encode_batch(coordinates_list: &Bound<'_, PyAny>, precision: u8) -> PyResult<Vec<String>> {
+    use crate::formats::python_to_coordinate_input;
+    use pyo3::types::PyList;
+    use rapidgeo_distance::formats::coords_to_lnglat_vec;
+
+    // Try to handle as Vec<Vec<LngLat>> first (existing API)
+    if let Ok(lnglat_list) = coordinates_list.extract::<Vec<Vec<LngLat>>>() {
+        let coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = lnglat_list
+            .iter()
+            .map(|coords| {
+                coords
+                    .iter()
+                    .map(|c| rapidgeo_distance::LngLat::new_deg(c.lng(), c.lat()))
+                    .collect()
+            })
+            .collect();
+
+        return encode_batch(&coord_batches, precision)
+            .map_err(|e| PyValueError::new_err(format!("Batch encoding error: {}", e)));
+    }
+
+    // Fallback: Handle as raw coordinate data (new functionality)
+    // HYBRID APPROACH: Use tolist() for pandas Series (faster bulk processing)
+    // but keep zero-copy for other types where it helps
+    let py_list = if let Ok(list) = coordinates_list.downcast::<PyList>() {
+        // Already a PyList - use directly (zero-copy)
+        list.clone()
+    } else {
+        // For pandas Series - use tolist() for faster bulk processing
+        // The memory allocation is worth it for the algorithmic efficiency
+        let list_obj = coordinates_list.call_method0("tolist")?;
+        list_obj.downcast::<PyList>()?.clone()
+    };
+
+    let mut coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = Vec::with_capacity(py_list.len());
+
+    for item in py_list.iter() {
+        // Use our optimized format conversion for each coordinate array
+        let input = python_to_coordinate_input(&item)?;
+        let coords = coords_to_lnglat_vec(&input);
+        coord_batches.push(coords);
+    }
 
     encode_batch(&coord_batches, precision)
         .map_err(|e| PyValueError::new_err(format!("Batch encoding error: {}", e)))
@@ -343,6 +375,30 @@ fn py_encode_simplified_batch(
         .map_err(|e| PyValueError::new_err(format!("Batch simplified encoding error: {}", e)))
 }
 
+/// Encode an entire pandas column/Series of coordinates to polylines
+///
+/// This is the fastest way to convert coordinate data to polylines. Takes a pandas Series
+/// or any iterable of coordinate arrays and returns all polylines in one shot.
+/// Uses Rayon parallelization internally for maximum performance.
+///
+/// Args:
+///     coordinates_column: pandas Series, list, or iterable of coordinate arrays
+///     precision (int, optional): Decimal places of precision (1-11). Defaults to 5.
+///
+/// Returns:
+///     List[str]: List of encoded polyline strings, one per input coordinate array
+///
+/// Examples:
+///     >>> df['polylines'] = rapidgeo.polyline.encode_column(df['coordinates'])
+///     >>> # processes entire column at once with parallel encoding
+#[pyfunction]
+#[pyo3(signature = (coordinates_column, precision = 5))]
+fn py_encode_column(coordinates_column: &Bound<'_, PyAny>, precision: u8) -> PyResult<Vec<String>> {
+    // This is exactly the same as encode_batch but with a more descriptive name
+    // and documentation focused on pandas/column usage
+    py_encode_batch(coordinates_column, precision)
+}
+
 pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     let m = PyModule::new(py, "polyline")?;
 
@@ -350,13 +406,10 @@ pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     m.add_function(wrap_pyfunction!(py_decode, &m)?)?;
     m.add_function(wrap_pyfunction!(py_encode_simplified, &m)?)?;
     m.add_function(wrap_pyfunction!(py_simplify_polyline, &m)?)?;
-
-    #[cfg(feature = "batch")]
-    {
-        m.add_function(wrap_pyfunction!(py_encode_batch, &m)?)?;
-        m.add_function(wrap_pyfunction!(py_decode_batch, &m)?)?;
-        m.add_function(wrap_pyfunction!(py_encode_simplified_batch, &m)?)?;
-    }
+    m.add_function(wrap_pyfunction!(py_encode_batch, &m)?)?;
+    m.add_function(wrap_pyfunction!(py_decode_batch, &m)?)?;
+    m.add_function(wrap_pyfunction!(py_encode_simplified_batch, &m)?)?;
+    m.add_function(wrap_pyfunction!(py_encode_column, &m)?)?;
 
     Ok(m)
 }

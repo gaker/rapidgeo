@@ -1,6 +1,7 @@
 # rapidgeo
 
 [![PyPI](https://img.shields.io/pypi/v/rapidgeo.svg)](https://pypi.org/project/rapidgeo/)
+[![Documentation](https://img.shields.io/badge/docs-rapidgeo-blue.svg)](https://rapidgeo.readthedocs.io/)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
 
 Fast geographic algorithms for Python, including distance calculations, polyline encoding/decoding, line simplification, and curve similarity measures.

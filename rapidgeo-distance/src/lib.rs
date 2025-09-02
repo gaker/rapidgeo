@@ -40,8 +40,13 @@
 //! - [`euclid`]: Fast planar distance calculations using [Euclidean geometry](https://en.wikipedia.org/wiki/Euclidean_geometry)
 //! - [`batch`]: Parallel batch operations (requires `batch` feature)
 
+pub mod detection;
 pub mod euclid;
+pub mod formats;
 pub mod geodesic;
+
+#[cfg(feature = "batch")]
+pub mod format_batch;
 
 #[cfg(feature = "batch")]
 pub mod batch;

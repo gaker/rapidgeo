@@ -5,6 +5,7 @@ Cargo.lock
 *.pdb
 lcov.info
 tarpaulin-report.html
+example-notebooks/.ipynb_checkpoints/*
 
 rapidgeo-py/docs/_build
 
