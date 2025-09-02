@@ -38,7 +38,6 @@ pub fn pairwise_haversine_numpy(
     Ok(PyArray1::from_vec(py, result).into())
 }
 
-#[cfg(feature = "numpy")]
 #[pyfunction]
 pub fn distances_to_point_numpy(
     py: Python,
@@ -74,7 +73,6 @@ pub fn distances_to_point_numpy(
     Ok(PyArray1::from_vec(py, result).into())
 }
 
-#[cfg(feature = "numpy")]
 #[pyfunction]
 pub fn path_length_haversine_numpy(
     py: Python,
@@ -108,7 +106,6 @@ pub fn path_length_haversine_numpy(
     }))
 }
 
-#[cfg(feature = "numpy")]
 pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     let m = PyModule::new(py, "numpy")?;
     m.add_function(wrap_pyfunction!(pairwise_haversine_numpy, &m)?)?;

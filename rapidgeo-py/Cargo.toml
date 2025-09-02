@@ -19,11 +19,10 @@ crate-type = ["cdylib"]
 default = ["batch"]
 vincenty = []
 batch = ["rayon", "rapidgeo-distance/batch"]
-numpy = ["dep:numpy"]
 
 [dependencies]
 pyo3 = { version = "0.26", features = ["extension-module"] }
-numpy = { version = "0.26", optional = true }
+numpy = { version = "0.26" }
 rayon = { version = "1.11", optional = true }
 rapidgeo-distance = { path = "../rapidgeo-distance", features = ["batch"] }
 rapidgeo-simplify = { path = "../rapidgeo-simplify", features = ["batch"] }

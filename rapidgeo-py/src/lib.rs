@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 mod distance;
 mod formats;
-#[cfg(feature = "numpy")]
+
 mod numpy_batch;
 mod polyline;
 mod similarity;

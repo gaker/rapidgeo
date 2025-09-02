@@ -3,6 +3,15 @@
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use rapidgeo_distance::{geodesic, LngLat as CoreLngLat};
+use std::sync::OnceLock;
+
+/// Cached numpy availability check to avoid repeated import overhead
+static NUMPY_AVAILABLE: OnceLock<bool> = OnceLock::new();
+
+/// Check if numpy is available, caching the result for performance
+fn is_numpy_available(py: Python) -> bool {
+    *NUMPY_AVAILABLE.get_or_init(|| py.import("numpy").is_ok())
+}
 
 /// Geographic coordinate representing longitude and latitude in decimal degrees.
 ///
@@ -354,8 +363,8 @@ pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     m.add_submodule(&euclid_mod::create_module(py)?)?;
     m.add_submodule(&batch_mod::create_module(py)?)?;
 
-    #[cfg(feature = "numpy")]
-    {
+    // Only add numpy submodule if numpy is available
+    if is_numpy_available(py) {
         use crate::numpy_batch;
         m.add_submodule(&numpy_batch::create_module(py)?)?;
     }

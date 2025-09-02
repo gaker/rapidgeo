@@ -22,11 +22,19 @@
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyTuple};
 use rapidgeo_distance::formats::{coords_to_lnglat_vec, CoordinateInput, GeoPoint};
+use std::sync::OnceLock;
 
-#[cfg(feature = "numpy")]
 use numpy::{PyArray1, PyArray2, PyArrayDyn, PyArrayMethods, PyUntypedArrayMethods};
 
 use crate::distance::LngLat;
+
+/// Cached numpy availability check to avoid repeated import overhead
+static NUMPY_AVAILABLE: OnceLock<bool> = OnceLock::new();
+
+/// Check if numpy is available, caching the result for performance
+fn is_numpy_available(py: Python) -> bool {
+    *NUMPY_AVAILABLE.get_or_init(|| py.import("numpy").is_ok())
+}
 
 /// Converts Python coordinate data to standardized LngLat format.
 ///
@@ -112,9 +120,8 @@ pub fn coords_to_lnglat(_py: Python, coords: &Bound<'_, PyAny>) -> PyResult<Vec<
 /// 3. First element is dict with "coordinates" → GeoJSON format  
 /// 4. Otherwise → Tuple/list format
 pub fn python_to_coordinate_input(coords: &Bound<'_, PyAny>) -> PyResult<CoordinateInput> {
-    // Try NumPy array first (zero-copy when possible)
-    #[cfg(feature = "numpy")]
-    {
+    // Try NumPy array first (zero-copy when possible) - only if numpy is available
+    if is_numpy_available(coords.py()) {
         // PRIORITY 1: Contiguous 2D arrays (FASTEST PATH)
         if let Ok(array) = coords.downcast::<PyArray2<f64>>() {
             return parse_numpy_2d_array(array);
@@ -283,7 +290,6 @@ fn parse_tuple_list(py_list: &Bound<'_, PyList>) -> PyResult<CoordinateInput> {
     Ok(CoordinateInput::Tuples(tuples))
 }
 
-#[cfg(feature = "numpy")]
 #[inline]
 fn parse_numpy_2d_array(array: &Bound<'_, PyArray2<f64>>) -> PyResult<CoordinateInput> {
     // ULTRA-FAST PATH: Handle contiguous 2D arrays like [[lng, lat], [lng, lat], ...]
@@ -309,7 +315,6 @@ fn parse_numpy_2d_array(array: &Bound<'_, PyArray2<f64>>) -> PyResult<Coordinate
     Ok(CoordinateInput::FlatArray(slice.to_vec()))
 }
 
-#[cfg(feature = "numpy")]
 #[inline]
 fn parse_numpy_array(array: &Bound<'_, PyArrayDyn<f64>>) -> PyResult<CoordinateInput> {
     // Get read-only access to NumPy array
@@ -320,7 +325,6 @@ fn parse_numpy_array(array: &Bound<'_, PyArrayDyn<f64>>) -> PyResult<CoordinateI
     Ok(CoordinateInput::FlatArray(slice.to_vec()))
 }
 
-#[cfg(feature = "numpy")]
 #[inline]
 fn parse_numpy_array_1d(array: &Bound<'_, PyArray1<f64>>) -> PyResult<CoordinateInput> {
     // Get read-only access to NumPy array
@@ -331,7 +335,6 @@ fn parse_numpy_array_1d(array: &Bound<'_, PyArray1<f64>>) -> PyResult<Coordinate
     Ok(CoordinateInput::FlatArray(slice.to_vec()))
 }
 
-#[cfg(feature = "numpy")]
 #[inline]
 fn parse_numpy_object_array(array: &Bound<'_, PyArrayDyn<Py<PyAny>>>) -> PyResult<CoordinateInput> {
     // Handle array-of-arrays like [array([lng1, lat1]), array([lng2, lat2]), ...]

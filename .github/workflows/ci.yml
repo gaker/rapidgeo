@@ -137,7 +137,7 @@ jobs:
         if [ "${{ runner.os }}" = "macOS" ]; then
           export MACOSX_DEPLOYMENT_TARGET=11.0
         fi
-        maturin develop --release --features numpy
+        maturin develop --release
       shell: bash
     
     - name: Test rapidgeo with numpy
