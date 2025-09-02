@@ -262,6 +262,7 @@ jobs:
       with:
         command: upload
         args: --non-interactive --skip-existing dist/*
+        working-directory: rapidgeo-py
 
   # Commenting out crates.io publishing for now - will do manual releases
   # publish-crates:
