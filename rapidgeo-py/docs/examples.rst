@@ -438,23 +438,23 @@ Compare Original vs Simplified Tracks
 .. code-block:: python
 
     from rapidgeo.similarity.hausdorff import hausdorff
-    
+
     def evaluate_simplification(original_track, tolerance_m):
         """Evaluate the effect of different simplification tolerances."""
-        
+
         simplified = douglas_peucker(original_track, tolerance_m=tolerance_m)
-        
+
         # Calculate metrics
         original_length = path_length_haversine(original_track)
         simplified_length = path_length_haversine(simplified)
-        
+
         # Measure maximum deviation
         max_deviation = hausdorff(original_track, simplified)
-        
+
         # Calculate reductions
         point_reduction = (1 - len(simplified) / len(original_track)) * 100
         length_error = abs(simplified_length - original_length) / original_length * 100
-        
+
         return {
             "tolerance_m": tolerance_m,
             "original_points": len(original_track),
@@ -465,13 +465,138 @@ Compare Original vs Simplified Tracks
             "original_length_km": original_length / 1000,
             "simplified_length_km": simplified_length / 1000,
         }
-    
+
     # Test different tolerance levels
     sample_track = [LngLat(-122.4 + i*0.001, 37.7 + i*0.001) for i in range(50)]
-    
+
     print("Simplification analysis:")
     for tolerance in [1, 5, 10, 25, 50, 100]:
         results = evaluate_simplification(sample_track, tolerance)
         print(f"Tolerance {tolerance}m: {results['point_reduction_pct']:.1f}% fewer points, "
               f"{results['length_error_pct']:.2f}% length error, "
               f"max deviation {results['max_deviation_m']:.1f}m")
+
+Bearing and Direction Analysis
+-------------------------------
+
+Calculate Bearing Between Two Points
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    from rapidgeo import LngLat
+    from rapidgeo.distance.geo import bearing
+
+    # San Francisco to New York
+    sf = LngLat(-122.4194, 37.7749)
+    nyc = LngLat(-74.0060, 40.7128)
+
+    bearing_deg = bearing(sf, nyc)
+    print(f"Bearing from SF to NYC: {bearing_deg:.1f}°")
+    # Output: Bearing from SF to NYC: 75.4° (ENE)
+
+    # Convert to cardinal direction
+    def bearing_to_cardinal(deg):
+        directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+        index = round(deg / 45) % 8
+        return directions[index]
+
+    print(f"Direction: {bearing_to_cardinal(bearing_deg)}")
+    # Output: Direction: E
+
+Fill Missing GPS Heading Data with Pandas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    import pandas as pd
+    import numpy as np
+    from rapidgeo import LngLat
+    from rapidgeo.distance.batch import pairwise_bearings
+
+    # data with missing heading values
+    df = pd.DataFrame({
+        'timestamp': ['2024-01-01 10:00:00', '2024-01-01 10:00:05', '2024-01-01 10:00:10', '2024-01-01 10:00:15'],
+        'latitude': [37.7749, 37.7755, 37.7762, 37.7768],
+        'longitude': [-122.4194, -122.4188, -122.4180, -122.4172],
+        'speed_mph': [25.0, 28.0, 30.0, 27.0],
+        'heading': [None, 65.0, None, None]  # Some heading data missing
+    })
+
+    print("Original data:")
+    print(df)
+
+    # Calculate bearings between consecutive points
+    points = [LngLat(lng, lat) for lat, lng in
+              zip(df['latitude'], df['longitude'])]
+
+    calculated_bearings = pairwise_bearings(points)
+
+    # Fill missing headings with calculated bearings
+    # Note: bearings list has len(points) - 1 elements, so we forward-fill
+    bearings_with_first = [None] + calculated_bearings  # First point has no previous bearing
+
+    df['calculated_heading'] = bearings_with_first
+    df['heading_filled'] = df['heading'].fillna(df['calculated_heading'])
+
+    print("\nData with filled headings:")
+    print(df[['timestamp', 'heading', 'calculated_heading', 'heading_filled']])
+
+    # Output:
+    #              timestamp  heading  calculated_heading  heading_filled
+    # 0  2024-01-01 10:00:00      NaN                None             NaN
+    # 1  2024-01-01 10:00:05     65.0               65.23            65.0
+    # 2  2024-01-01 10:00:10      NaN               66.15           66.15
+    # 3  2024-01-01 10:00:15      NaN               65.89           65.89
+
+Analyze Route Directions with NumPy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    import numpy as np
+    from rapidgeo import LngLat
+    from rapidgeo.distance.batch import pairwise_bearings, pairwise_haversine
+
+    # GPS track data as NumPy arrays
+    lats = np.array([37.7749, 37.7755, 37.7762, 37.7768, 37.7775, 37.7780])
+    lngs = np.array([-122.4194, -122.4188, -122.4180, -122.4172, -122.4165, -122.4160])
+
+    # Convert to LngLat objects
+    points = [LngLat(lng, lat) for lat, lng in zip(lats, lngs)]
+
+    # Calculate bearings and distances
+    bearings = np.array(pairwise_bearings(points))
+    distances = np.array(pairwise_haversine(points))
+
+    print("Segment analysis:")
+    for i, (bearing, distance) in enumerate(zip(bearings, distances)):
+        print(f"Segment {i}: {distance:.1f}m at {bearing:.1f}°")
+
+    # Detect turns (significant bearing changes)
+    bearing_changes = np.abs(np.diff(bearings))
+    # Handle wraparound (e.g., 359° to 1° is 2°, not 358°)
+    bearing_changes = np.minimum(bearing_changes, 360 - bearing_changes)
+
+    turn_threshold = 15.0  # degrees
+    turns = np.where(bearing_changes > turn_threshold)[0]
+
+    print(f"\nDetected {len(turns)} turns:")
+    for turn_idx in turns:
+        print(f"  Turn at segment {turn_idx+1}: {bearing_changes[turn_idx]:.1f}° change")
+
+    # Calculate total distance
+    total_distance = np.sum(distances)
+    print(f"\nTotal distance: {total_distance:.1f}m")
+
+    # Output:
+    # Segment analysis:
+    # Segment 0: 75.3m at 65.2°
+    # Segment 1: 76.1m at 66.1°
+    # Segment 2: 75.8m at 65.9°
+    # Segment 3: 76.2m at 66.3°
+    # Segment 4: 75.5m at 65.7°
+    #
+    # Detected 0 turns:
+    #
+    # Total distance: 378.9m

@@ -411,6 +411,44 @@ pub mod euclid_mod {
 pub mod batch_mod {
     use super::*;
 
+    /// Calculate haversine distances between consecutive points in a path.
+    ///
+    /// Computes the great-circle distance between each pair of consecutive points
+    /// using the Haversine formula. Returns a list of distances with length ``len(points) - 1``.
+    ///
+    /// Parameters
+    /// ----------
+    /// points : list[LngLat]
+    ///     List of coordinates representing a path
+    ///
+    /// Returns
+    /// -------
+    /// list[float]
+    ///     Distances in meters between consecutive points. Length is ``len(points) - 1``.
+    ///
+    /// Examples
+    /// --------
+    /// >>> from rapidgeo import LngLat
+    /// >>> from rapidgeo.distance.batch import pairwise_haversine
+    /// >>> path = [
+    /// ...     LngLat(-122.4194, 37.7749),  # San Francisco
+    /// ...     LngLat(-87.6298, 41.8781),   # Chicago
+    /// ...     LngLat(-74.0060, 40.7128),   # New York
+    /// ... ]
+    /// >>> distances = pairwise_haversine(path)
+    /// >>> [f"{d/1000:.0f} km" for d in distances]
+    /// ['2984 km', '1145 km']
+    ///
+    /// Notes
+    /// -----
+    /// - Uses spherical Earth approximation (accurate to ±0.5% for distances <1000km)
+    /// - Releases GIL during computation
+    /// - For high precision, use Vincenty-based functions
+    ///
+    /// See Also
+    /// --------
+    /// path_length_haversine : Sum of all consecutive distances
+    /// pairwise_bearings : Bearings between consecutive points
     #[pyfunction]
     pub fn pairwise_haversine(py: Python, points: &Bound<'_, PyList>) -> PyResult<Vec<f64>> {
         let core_pts: Vec<CoreLngLat> = points
@@ -429,6 +467,45 @@ pub mod batch_mod {
         }))
     }
 
+    /// Calculate the total haversine distance along a path.
+    ///
+    /// Computes the sum of great-circle distances between all consecutive points
+    /// using the Haversine formula.
+    ///
+    /// Parameters
+    /// ----------
+    /// points : list[LngLat]
+    ///     List of coordinates representing a path (minimum 2 points)
+    ///
+    /// Returns
+    /// -------
+    /// float
+    ///     Total path length in meters
+    ///
+    /// Examples
+    /// --------
+    /// >>> from rapidgeo import LngLat
+    /// >>> from rapidgeo.distance.batch import path_length_haversine
+    /// >>> route = [
+    /// ...     LngLat(-122.4194, 37.7749),  # San Francisco
+    /// ...     LngLat(-87.6298, 41.8781),   # Chicago
+    /// ...     LngLat(-74.0060, 40.7128),   # New York
+    /// ... ]
+    /// >>> total_km = path_length_haversine(route) / 1000
+    /// >>> print(f"Total route: {total_km:.0f} km")
+    /// Total route: 4129 km
+    ///
+    /// Notes
+    /// -----
+    /// - Uses spherical Earth approximation (accurate to ±0.5% for distances <1000km)
+    /// - Releases Python GIL during computation
+    /// - Returns 0.0 for paths with fewer than 2 points
+    /// - For millimeter precision, use ``path_length_vincenty()``
+    ///
+    /// See Also
+    /// --------
+    /// pairwise_haversine : Get individual segment distances
+    /// pairwise_bearings : Get bearings between consecutive points
     #[pyfunction]
     pub fn path_length_haversine(py: Python, points: &Bound<'_, PyList>) -> PyResult<f64> {
         let core_pts: Vec<CoreLngLat> = points
@@ -447,6 +524,48 @@ pub mod batch_mod {
         }))
     }
 
+    /// Calculate initial bearings between consecutive points in a path.
+    ///
+    /// Computes the compass bearing (azimuth) from each point to the next point
+    /// along the great circle path. Returns a list of bearings with length ``len(points) - 1``.
+    ///
+    /// Bearings are measured in degrees (0-360°) clockwise from North:
+    /// 0° = North, 90° = East, 180° = South, 270° = West
+    ///
+    /// Parameters
+    /// ----------
+    /// points : list[LngLat]
+    ///     List of coordinates representing a path
+    ///
+    /// Returns
+    /// -------
+    /// list[float]
+    ///     Initial bearings in degrees (0-360°). Length is ``len(points) - 1``.
+    ///
+    /// Examples
+    /// --------
+    /// >>> from rapidgeo import LngLat
+    /// >>> from rapidgeo.distance.batch import pairwise_bearings
+    /// >>> path = [
+    /// ...     LngLat(0.0, 0.0),    # Origin
+    /// ...     LngLat(1.0, 0.0),    # East
+    /// ...     LngLat(1.0, 1.0),    # North
+    /// ... ]
+    /// >>> bearings = pairwise_bearings(path)
+    /// >>> [f"{b:.1f}°" for b in bearings]
+    /// ['90.0°', '0.0°']
+    ///
+    /// Notes
+    /// -----
+    /// - Returns initial bearing at each point (bearing changes along great circles)
+    /// - Releases Python GIL during computation
+    /// - Returns empty list for paths with fewer than 2 points
+    /// - Handles antimeridian crossing correctly
+    ///
+    /// See Also
+    /// --------
+    /// pairwise_haversine : Distances between consecutive points
+    /// bearing : Single bearing calculation
     #[pyfunction]
     pub fn pairwise_bearings(py: Python, points: &Bound<'_, PyList>) -> PyResult<Vec<f64>> {
         let core_pts: Vec<CoreLngLat> = points
