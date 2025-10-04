@@ -23,9 +23,9 @@ This repository contains four crates:
 ```toml
 [dependencies]
 rapidgeo-distance = "0.2"
-rapidgeo-polyline = "0.2"
-rapidgeo-simplify = "0.2"
-rapidgeo-similarity = "0.2"
+rapidgeo-polyline = "0.1"
+rapidgeo-simplify = "0.1"
+rapidgeo-similarity = "0.1"
 ```
 
 ### Python Package
