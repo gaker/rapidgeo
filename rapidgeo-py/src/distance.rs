@@ -114,6 +114,131 @@ pub mod geo {
         geodesic::haversine(a.into(), b.into())
     }
 
+    /// Calculate distance in kilometers using the Haversine formula.
+    ///
+    /// Convenient wrapper that returns distance in kilometers instead of meters.
+    /// Fast spherical approximation accurate to within 0.5% for distances under 1000km.
+    ///
+    /// Args:
+    ///     a (LngLat): First coordinate
+    ///     b (LngLat): Second coordinate
+    ///
+    /// Returns:
+    ///     float: Distance in kilometers
+    ///
+    /// Examples:
+    ///     >>> from rapidgeo import LngLat
+    ///     >>> from rapidgeo.distance.geo import haversine_km
+    ///     >>> sf = LngLat(-122.4194, 37.7749)
+    ///     >>> nyc = LngLat(-74.0060, 40.7128)
+    ///     >>> distance = haversine_km(sf, nyc)
+    ///     >>> print(f"Distance: {distance:.0f} km")
+    ///     Distance: 4135 km
+    #[pyfunction]
+    pub fn haversine_km(a: LngLat, b: LngLat) -> f64 {
+        geodesic::haversine_km(a.into(), b.into())
+    }
+
+    /// Calculate distance in statute miles using the Haversine formula.
+    ///
+    /// Convenient wrapper that returns distance in statute miles.
+    /// Fast spherical approximation accurate to within 0.5% for distances under 1000km.
+    ///
+    /// Args:
+    ///     a (LngLat): First coordinate
+    ///     b (LngLat): Second coordinate
+    ///
+    /// Returns:
+    ///     float: Distance in statute miles
+    ///
+    /// Examples:
+    ///     >>> from rapidgeo import LngLat
+    ///     >>> from rapidgeo.distance.geo import haversine_miles
+    ///     >>> sf = LngLat(-122.4194, 37.7749)
+    ///     >>> nyc = LngLat(-74.0060, 40.7128)
+    ///     >>> distance = haversine_miles(sf, nyc)
+    ///     >>> print(f"Distance: {distance:.0f} miles")
+    ///     Distance: 2570 miles
+    #[pyfunction]
+    pub fn haversine_miles(a: LngLat, b: LngLat) -> f64 {
+        geodesic::haversine_miles(a.into(), b.into())
+    }
+
+    /// Calculate distance in nautical miles using the Haversine formula.
+    ///
+    /// Convenient wrapper that returns distance in nautical miles.
+    /// Fast spherical approximation accurate to within 0.5% for distances under 1000km.
+    ///
+    /// Args:
+    ///     a (LngLat): First coordinate
+    ///     b (LngLat): Second coordinate
+    ///
+    /// Returns:
+    ///     float: Distance in nautical miles
+    ///
+    /// Examples:
+    ///     >>> from rapidgeo import LngLat
+    ///     >>> from rapidgeo.distance.geo import haversine_nautical
+    ///     >>> sf = LngLat(-122.4194, 37.7749)
+    ///     >>> nyc = LngLat(-74.0060, 40.7128)
+    ///     >>> distance = haversine_nautical(sf, nyc)
+    ///     >>> print(f"Distance: {distance:.0f} nm")
+    ///     Distance: 2232 nm
+    #[pyfunction]
+    pub fn haversine_nautical(a: LngLat, b: LngLat) -> f64 {
+        geodesic::haversine_nautical(a.into(), b.into())
+    }
+
+    /// Calculate the initial bearing from one point to another.
+    ///
+    /// Returns the compass bearing (azimuth) in degrees from the first point
+    /// to the second point along the great circle path.
+    ///
+    /// Args:
+    ///     from_point (LngLat): Starting coordinate
+    ///     to_point (LngLat): Destination coordinate
+    ///
+    /// Returns:
+    ///     float: Initial bearing in degrees (0-360°, where 0° is North)
+    ///
+    /// Examples:
+    ///     >>> from rapidgeo import LngLat
+    ///     >>> from rapidgeo.distance.geo import bearing
+    ///     >>> sf = LngLat(-122.4194, 37.7749)
+    ///     >>> nyc = LngLat(-74.0060, 40.7128)
+    ///     >>> bearing_deg = bearing(sf, nyc)
+    ///     >>> print(f"Bearing: {bearing_deg:.1f}°")
+    ///     Bearing: 65.4°
+    #[pyfunction]
+    pub fn bearing(from_point: LngLat, to_point: LngLat) -> f64 {
+        geodesic::bearing(from_point.into(), to_point.into())
+    }
+
+    /// Calculate the destination point given origin, distance, and bearing.
+    ///
+    /// Uses spherical trigonometry to find the point that is at the specified
+    /// distance and bearing from the origin point.
+    ///
+    /// Args:
+    ///     origin (LngLat): Starting coordinate
+    ///     distance_m (float): Distance to travel in meters
+    ///     bearing_deg (float): Compass bearing in degrees (0-360°, where 0° is North)
+    ///
+    /// Returns:
+    ///     LngLat: Destination coordinate
+    ///
+    /// Examples:
+    ///     >>> from rapidgeo import LngLat
+    ///     >>> from rapidgeo.distance.geo import destination
+    ///     >>> london = LngLat(-0.1278, 51.5074)
+    ///     >>> dest = destination(london, 100000, 90)  # 100km due east
+    ///     >>> print(f"Destination: {dest.lng:.4f}, {dest.lat:.4f}")
+    ///     Destination: 1.2644, 51.5074
+    #[pyfunction]
+    pub fn destination(origin: LngLat, distance_m: f64, bearing_deg: f64) -> LngLat {
+        geodesic::destination(origin.into(), distance_m, bearing_deg).into()
+    }
+
     /// Calculate high-precision distance using Vincenty's formulae for the WGS84 ellipsoid.
     ///
     /// Provides millimeter accuracy for geodesic distances but slower than Haversine.
@@ -150,6 +275,11 @@ pub mod geo {
     pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
         let m = PyModule::new(py, "geo")?;
         m.add_function(wrap_pyfunction!(haversine, &m)?)?;
+        m.add_function(wrap_pyfunction!(haversine_km, &m)?)?;
+        m.add_function(wrap_pyfunction!(haversine_miles, &m)?)?;
+        m.add_function(wrap_pyfunction!(haversine_nautical, &m)?)?;
+        m.add_function(wrap_pyfunction!(bearing, &m)?)?;
+        m.add_function(wrap_pyfunction!(destination, &m)?)?;
         m.add_function(wrap_pyfunction!(vincenty_distance, &m)?)?;
         Ok(m)
     }
@@ -317,6 +447,24 @@ pub mod batch_mod {
         }))
     }
 
+    #[pyfunction]
+    pub fn pairwise_bearings(py: Python, points: &Bound<'_, PyList>) -> PyResult<Vec<f64>> {
+        let core_pts: Vec<CoreLngLat> = points
+            .iter()
+            .map(|item| {
+                let pt: LngLat = item.extract()?;
+                Ok(pt.into())
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+
+        Ok(py.detach(move || {
+            core_pts
+                .windows(2)
+                .map(|pair| rapidgeo_distance::geodesic::bearing(pair[0], pair[1]))
+                .collect()
+        }))
+    }
+
     #[cfg(feature = "vincenty")]
     #[pyfunction]
     pub fn path_length_vincenty(py: Python, points: &Bound<'_, PyList>) -> PyResult<f64> {
@@ -348,6 +496,7 @@ pub mod batch_mod {
         let m = PyModule::new(py, "batch")?;
         m.add_function(wrap_pyfunction!(pairwise_haversine, &m)?)?;
         m.add_function(wrap_pyfunction!(path_length_haversine, &m)?)?;
+        m.add_function(wrap_pyfunction!(pairwise_bearings, &m)?)?;
 
         #[cfg(feature = "vincenty")]
         m.add_function(wrap_pyfunction!(path_length_vincenty, &m)?)?;

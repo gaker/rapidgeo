@@ -115,6 +115,168 @@ pub fn path_length_haversine(pts: &[LngLat]) -> f64 {
     pairwise_haversine(pts).sum()
 }
 
+/// Calculates initial bearings between consecutive points in a path.
+///
+/// Returns an iterator over the bearings from each point to the next point.
+/// Memory-efficient as it processes points lazily without allocating a result vector.
+///
+/// # Arguments
+///
+/// * `pts` - Slice of coordinates representing a path
+///
+/// # Returns
+///
+/// Iterator yielding bearings in degrees (0-360°). Length will be `pts.len() - 1`.
+///
+/// # Examples
+///
+/// ```
+/// use rapidgeo_distance::{LngLat, batch::pairwise_bearings};
+///
+/// let path = [
+///     LngLat::new_deg(0.0, 0.0),
+///     LngLat::new_deg(1.0, 0.0),
+///     LngLat::new_deg(1.0, 1.0),
+/// ];
+///
+/// let bearings: Vec<f64> = pairwise_bearings(&path).collect();
+/// assert_eq!(bearings.len(), 2);
+/// assert!((bearings[0] - 90.0).abs() < 1.0); // East
+/// assert!((bearings[1] - 0.0).abs() < 1.0);  // North
+/// ```
+pub fn pairwise_bearings(pts: &[LngLat]) -> impl Iterator<Item = f64> + '_ {
+    pts.windows(2)
+        .map(|pair| geodesic::bearing(pair[0], pair[1]))
+}
+
+/// Calculates bearings between consecutive points, writing to a pre-allocated buffer.
+///
+/// Memory-efficient version of [`pairwise_bearings`] that writes results to an existing buffer
+/// instead of allocating a new vector.
+///
+/// # Arguments
+///
+/// * `pts` - Slice of coordinates representing a path
+/// * `output` - Mutable slice to write bearings to (must be at least `pts.len() - 1` long)
+///
+/// # Panics
+///
+/// Panics if output buffer is too small to hold all results.
+///
+/// # Examples
+///
+/// ```
+/// use rapidgeo_distance::{LngLat, batch::pairwise_bearings_into};
+///
+/// let path = [
+///     LngLat::new_deg(0.0, 0.0),
+///     LngLat::new_deg(1.0, 0.0),
+///     LngLat::new_deg(1.0, 1.0),
+/// ];
+///
+/// let mut bearings = vec![0.0; path.len() - 1];
+/// pairwise_bearings_into(&path, &mut bearings);
+///
+/// assert!((bearings[0] - 90.0).abs() < 1.0); // East
+/// assert!((bearings[1] - 0.0).abs() < 1.0);  // North
+/// ```
+pub fn pairwise_bearings_into(pts: &[LngLat], output: &mut [f64]) {
+    assert!(
+        output.len() >= pts.len().saturating_sub(1),
+        "Output buffer too small: need {}, got {}",
+        pts.len().saturating_sub(1),
+        output.len()
+    );
+
+    for (i, pair) in pts.windows(2).enumerate() {
+        output[i] = geodesic::bearing(pair[0], pair[1]);
+    }
+}
+
+/// Parallel version of [`pairwise_bearings`] that returns a vector.
+///
+/// Uses Rayon for parallel processing. More efficient for large datasets (>1,000 points)
+/// but has overhead for small datasets. Requires the `batch` feature.
+///
+/// # Arguments
+///
+/// * `pts` - Slice of coordinates representing a path
+///
+/// # Returns
+///
+/// Vector of bearings in degrees (0-360°). Length will be `pts.len() - 1`.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[cfg(feature = "batch")]
+/// # {
+/// use rapidgeo_distance::{LngLat, batch::pairwise_bearings_par};
+///
+/// let path: Vec<LngLat> = (0..10000)
+///     .map(|i| LngLat::new_deg(i as f64 * 0.001, 0.0))
+///     .collect();
+///
+/// let bearings = pairwise_bearings_par(&path);
+/// assert_eq!(bearings.len(), path.len() - 1);
+/// # }
+/// ```
+#[cfg(feature = "batch")]
+pub fn pairwise_bearings_par(pts: &[LngLat]) -> Vec<f64> {
+    pts.windows(2)
+        .collect::<Vec<_>>()
+        .par_iter()
+        .map(|pair| geodesic::bearing(pair[0], pair[1]))
+        .collect()
+}
+
+/// Parallel version of [`pairwise_bearings_into`] that writes to a pre-allocated buffer.
+///
+/// Uses Rayon for parallel processing. More efficient for large datasets (>1,000 points).
+/// Requires the `batch` feature.
+///
+/// # Arguments
+///
+/// * `pts` - Slice of coordinates representing a path
+/// * `output` - Mutable slice to write bearings to (must be at least `pts.len() - 1` long)
+///
+/// # Panics
+///
+/// Panics if output buffer is too small.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[cfg(feature = "batch")]
+/// # {
+/// use rapidgeo_distance::{LngLat, batch::pairwise_bearings_par_into};
+///
+/// let path: Vec<LngLat> = (0..10000)
+///     .map(|i| LngLat::new_deg(i as f64 * 0.001, 0.0))
+///     .collect();
+///
+/// let mut bearings = vec![0.0; path.len() - 1];
+/// pairwise_bearings_par_into(&path, &mut bearings);
+/// # }
+/// ```
+#[cfg(feature = "batch")]
+pub fn pairwise_bearings_par_into(pts: &[LngLat], output: &mut [f64]) {
+    assert!(
+        output.len() >= pts.len().saturating_sub(1),
+        "Output buffer too small: need {}, got {}",
+        pts.len().saturating_sub(1),
+        output.len()
+    );
+
+    let windows: Vec<_> = pts.windows(2).collect();
+    output[..pts.len().saturating_sub(1)]
+        .par_iter_mut()
+        .zip(windows.par_iter())
+        .for_each(|(out, pair)| {
+            *out = geodesic::bearing(pair[0], pair[1]);
+        });
+}
+
 /// Parallel version of [`pairwise_haversine`] that returns a vector.
 ///
 /// Uses Rayon for parallel processing. More efficient for large datasets (>1,000 points)
@@ -950,5 +1112,87 @@ mod tests {
         assert!(output[2].is_nan()); // Unchanged
         assert!(output[3].is_nan()); // Unchanged
         assert!(output[4].is_nan()); // Unchanged
+    }
+
+    #[test]
+    fn test_pairwise_bearings() {
+        let pts = [
+            LngLat::new_deg(0.0, 0.0),
+            LngLat::new_deg(1.0, 0.0),
+            LngLat::new_deg(1.0, 1.0),
+        ];
+
+        let bearings: Vec<f64> = pairwise_bearings(&pts).collect();
+        assert_eq!(bearings.len(), 2);
+        assert!((bearings[0] - 90.0).abs() < 1.0); // East
+        assert!((bearings[1] - 0.0).abs() < 1.0); // North
+    }
+
+    #[test]
+    fn test_pairwise_bearings_into() {
+        let pts = [
+            LngLat::new_deg(0.0, 0.0),
+            LngLat::new_deg(1.0, 0.0),
+            LngLat::new_deg(1.0, 1.0),
+        ];
+
+        let mut output = vec![0.0; 2];
+        pairwise_bearings_into(&pts, &mut output);
+
+        let expected: Vec<f64> = pairwise_bearings(&pts).collect();
+        assert_eq!(output, expected);
+
+        assert!((output[0] - 90.0).abs() < 1.0); // East
+        assert!((output[1] - 0.0).abs() < 1.0); // North
+    }
+
+    #[test]
+    #[should_panic(expected = "Output buffer too small")]
+    fn test_pairwise_bearings_into_buffer_too_small() {
+        let pts = [
+            LngLat::new_deg(0.0, 0.0),
+            LngLat::new_deg(1.0, 0.0),
+            LngLat::new_deg(1.0, 1.0),
+        ];
+        let mut output = vec![0.0; 1];
+        pairwise_bearings_into(&pts, &mut output);
+    }
+
+    #[test]
+    #[cfg(feature = "batch")]
+    fn test_pairwise_bearings_par() {
+        let pts = [
+            LngLat::new_deg(0.0, 0.0),
+            LngLat::new_deg(1.0, 0.0),
+            LngLat::new_deg(1.0, 1.0),
+        ];
+
+        let bearings = pairwise_bearings_par(&pts);
+        assert_eq!(bearings.len(), 2);
+
+        let serial_bearings: Vec<f64> = pairwise_bearings(&pts).collect();
+        for (par, serial) in bearings.iter().zip(serial_bearings.iter()) {
+            assert!((par - serial).abs() < 1e-10);
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "batch")]
+    fn test_pairwise_bearings_par_into() {
+        let pts = [
+            LngLat::new_deg(0.0, 0.0),
+            LngLat::new_deg(1.0, 0.0),
+            LngLat::new_deg(1.0, 1.0),
+        ];
+
+        let mut output_par = vec![0.0; 2];
+        let mut output_serial = vec![0.0; 2];
+
+        pairwise_bearings_par_into(&pts, &mut output_par);
+        pairwise_bearings_into(&pts, &mut output_serial);
+
+        for (par, serial) in output_par.iter().zip(output_serial.iter()) {
+            assert!((par - serial).abs() < 1e-10);
+        }
     }
 }

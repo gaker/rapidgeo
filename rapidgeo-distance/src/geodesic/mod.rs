@@ -33,7 +33,9 @@ pub mod haversine;
 pub mod point_to_segment;
 pub mod vincenty;
 
-pub use haversine::haversine;
+pub use haversine::{
+    bearing, destination, haversine, haversine_km, haversine_miles, haversine_nautical,
+};
 pub use point_to_segment::{great_circle_point_to_seg, point_to_segment_enu_m};
 pub use vincenty::{vincenty_distance_m, VincentyError};
 

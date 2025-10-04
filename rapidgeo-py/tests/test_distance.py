@@ -3,7 +3,15 @@
 import pytest
 import math
 from rapidgeo import LngLat
-from rapidgeo.distance.geo import haversine, vincenty_distance
+from rapidgeo.distance.geo import (
+    haversine,
+    haversine_km,
+    haversine_miles,
+    haversine_nautical,
+    bearing,
+    destination,
+    vincenty_distance,
+)
 from rapidgeo.distance.euclid import (
     euclid,
     squared,
@@ -343,6 +351,211 @@ class TestDistanceEdgeCases:
 
         total_length = path_length_haversine(empty_points)
         assert total_length == 0.0
+
+
+class TestUnitConversions:
+    """Test unit conversion functions"""
+
+    def test_haversine_km_basic(self):
+        """Test haversine distance in kilometers"""
+        sf = LngLat(-122.4194, 37.7749)
+        nyc = LngLat(-74.0060, 40.7128)
+
+        distance_m = haversine(sf, nyc)
+        distance_km = haversine_km(sf, nyc)
+
+        # Should be meters / 1000
+        assert abs(distance_km - distance_m / 1000.0) < 1e-10
+        assert 4000 < distance_km < 4200  # ~4135 km
+
+    def test_haversine_miles_basic(self):
+        """Test haversine distance in statute miles"""
+        sf = LngLat(-122.4194, 37.7749)
+        nyc = LngLat(-74.0060, 40.7128)
+
+        distance_m = haversine(sf, nyc)
+        distance_miles = haversine_miles(sf, nyc)
+
+        # Should be meters / 1609.344
+        expected_miles = distance_m / 1609.344
+        assert abs(distance_miles - expected_miles) < 1e-10
+        assert 2500 < distance_miles < 2600  # ~2570 miles
+
+    def test_haversine_nautical_basic(self):
+        """Test haversine distance in nautical miles"""
+        sf = LngLat(-122.4194, 37.7749)
+        nyc = LngLat(-74.0060, 40.7128)
+
+        distance_m = haversine(sf, nyc)
+        distance_nm = haversine_nautical(sf, nyc)
+
+        # Should be meters / 1852.0
+        expected_nm = distance_m / 1852.0
+        assert abs(distance_nm - expected_nm) < 1e-10
+        assert 2200 < distance_nm < 2300  # ~2232 nautical miles
+
+    def test_unit_conversion_zero_distance(self):
+        """Test unit conversions with zero distance"""
+        pt = LngLat(0.0, 0.0)
+
+        assert haversine_km(pt, pt) == 0.0
+        assert haversine_miles(pt, pt) == 0.0
+        assert haversine_nautical(pt, pt) == 0.0
+
+    def test_unit_conversion_consistency(self):
+        """Test consistency between different unit conversions"""
+        pt1 = LngLat(-122.0, 37.0)
+        pt2 = LngLat(-121.0, 38.0)
+
+        distance_m = haversine(pt1, pt2)
+        distance_km = haversine_km(pt1, pt2)
+        distance_miles = haversine_miles(pt1, pt2)
+        distance_nm = haversine_nautical(pt1, pt2)
+
+        # Check conversions
+        assert abs(distance_km - distance_m / 1000.0) < 1e-10
+        assert abs(distance_miles - distance_m / 1609.344) < 1e-10
+        assert abs(distance_nm - distance_m / 1852.0) < 1e-10
+
+
+class TestBearing:
+    """Test bearing calculation function"""
+
+    def test_bearing_basic(self):
+        """Test basic bearing calculation"""
+        # From equator due north
+        origin = LngLat(0.0, 0.0)
+        destination = LngLat(0.0, 1.0)
+
+        bearing_deg = bearing(origin, destination)
+        assert abs(bearing_deg - 0.0) < 0.1  # Should be 0° (north)
+
+    def test_bearing_due_east(self):
+        """Test bearing due east"""
+        origin = LngLat(0.0, 0.0)
+        destination = LngLat(1.0, 0.0)
+
+        bearing_deg = bearing(origin, destination)
+        assert abs(bearing_deg - 90.0) < 0.1  # Should be 90° (east)
+
+    def test_bearing_due_south(self):
+        """Test bearing due south"""
+        origin = LngLat(0.0, 1.0)
+        destination = LngLat(0.0, 0.0)
+
+        bearing_deg = bearing(origin, destination)
+        assert abs(bearing_deg - 180.0) < 0.1  # Should be 180° (south)
+
+    def test_bearing_due_west(self):
+        """Test bearing due west"""
+        origin = LngLat(1.0, 0.0)
+        destination = LngLat(0.0, 0.0)
+
+        bearing_deg = bearing(origin, destination)
+        assert abs(bearing_deg - 270.0) < 0.1  # Should be 270° (west)
+
+    def test_bearing_range(self):
+        """Test bearing always in 0-360 range"""
+        test_cases = [
+            (LngLat(0.0, 0.0), LngLat(1.0, 1.0)),
+            (LngLat(-122.0, 37.0), LngLat(-74.0, 40.0)),
+            (LngLat(180.0, 0.0), LngLat(-180.0, 0.0)),
+        ]
+
+        for origin, dest in test_cases:
+            bearing_deg = bearing(origin, dest)
+            assert 0.0 <= bearing_deg < 360.0
+
+    def test_bearing_real_world(self):
+        """Test bearing with real world coordinates"""
+        sf = LngLat(-122.4194, 37.7749)
+        nyc = LngLat(-74.0060, 40.7128)
+
+        bearing_deg = bearing(sf, nyc)
+        # SF to NYC should be roughly northeast (60-70°)
+        assert 60.0 < bearing_deg < 80.0
+
+
+class TestDestination:
+    """Test destination point calculation"""
+
+    def test_destination_basic(self):
+        """Test basic destination calculation"""
+        origin = LngLat(0.0, 0.0)
+        
+        # Go 100km due north
+        dest = destination(origin, 100000, 0.0)
+        
+        # Should be roughly at 0°, 0.9° (about 100km north)
+        assert abs(dest.lng - 0.0) < 0.01
+        assert 0.8 < dest.lat < 1.0
+
+    def test_destination_due_east(self):
+        """Test destination due east"""
+        origin = LngLat(0.0, 0.0)
+        
+        # Go 100km due east
+        dest = destination(origin, 100000, 90.0)
+        
+        # Should be roughly at 0.9°, 0° (about 100km east at equator)
+        assert 0.8 < dest.lng < 1.0
+        assert abs(dest.lat - 0.0) < 0.01
+
+    def test_destination_roundtrip_consistency(self):
+        """Test destination and bearing roundtrip consistency"""
+        origin = LngLat(-122.4194, 37.7749)  # San Francisco
+        distance_m = 50000  # 50km
+        bearing_deg = 45.0  # Northeast
+        
+        # Calculate destination
+        dest = destination(origin, distance_m, bearing_deg)
+        
+        # Calculate distance and bearing back
+        calculated_distance = haversine(origin, dest)
+        calculated_bearing = bearing(origin, dest)
+        
+        # Should be close (within spherical approximation tolerance)
+        assert abs(calculated_distance - distance_m) < 100  # Within 100m
+        assert abs(calculated_bearing - bearing_deg) < 0.1  # Within 0.1°
+
+    def test_destination_zero_distance(self):
+        """Test destination with zero distance"""
+        origin = LngLat(-122.0, 37.0)
+        
+        dest = destination(origin, 0.0, 45.0)
+        
+        # Should return same point
+        assert abs(dest.lng - origin.lng) < 1e-10
+        assert abs(dest.lat - origin.lat) < 1e-10
+
+    def test_destination_antimeridian_crossing(self):
+        """Test destination crossing antimeridian"""
+        origin = LngLat(179.0, 0.0)  # Near antimeridian
+        
+        # Go east across antimeridian
+        dest = destination(origin, 200000, 90.0)  # 200km east
+        
+        # Should wrap to negative longitude
+        assert dest.lng < 0
+        assert dest.lng > -180
+
+    def test_destination_multiple_bearings(self):
+        """Test destination with various bearings"""
+        origin = LngLat(0.0, 0.0)
+        distance_m = 100000  # 100km
+        
+        bearings = [0, 45, 90, 135, 180, 225, 270, 315]
+        
+        for bear in bearings:
+            dest = destination(origin, distance_m, float(bear))
+            
+            # All destinations should be valid coordinates
+            assert -180 <= dest.lng <= 180
+            assert -90 <= dest.lat <= 90
+            
+            # Distance should be approximately correct
+            calc_dist = haversine(origin, dest)
+            assert abs(calc_dist - distance_m) < 1000  # Within 1km tolerance
 
 
 class TestDistanceMethodComparison:

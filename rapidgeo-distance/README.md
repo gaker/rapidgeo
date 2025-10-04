@@ -14,10 +14,10 @@ All coordinates use **longitude, latitude** ordering (lng, lat).
 
 ```toml
 [dependencies]
-rapidgeo-distance = "0.1"
+rapidgeo-distance = "0.2"
 
 # Or with optional features
-rapidgeo-distance = { version = "0.1", features = ["batch", "vincenty"] }
+rapidgeo-distance = { version = "0.2", features = ["batch", "vincenty"] }
 ```
 
 ## Quick Start

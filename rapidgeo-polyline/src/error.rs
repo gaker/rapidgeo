@@ -102,3 +102,59 @@ impl std::error::Error for PolylineError {}
 /// }
 /// ```
 pub type PolylineResult<T> = Result<T, PolylineError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_invalid_character_display() {
+        let err = PolylineError::InvalidCharacter {
+            character: '!',
+            position: 5,
+        };
+        assert_eq!(err.to_string(), "Invalid character '!' at position 5");
+    }
+
+    #[test]
+    fn test_truncated_data_display() {
+        let err = PolylineError::TruncatedData;
+        assert_eq!(err.to_string(), "Polyline data is truncated or malformed");
+    }
+
+    #[test]
+    fn test_coordinate_overflow_display() {
+        let err = PolylineError::CoordinateOverflow;
+        assert_eq!(
+            err.to_string(),
+            "Coordinate value overflow during encoding or decoding"
+        );
+    }
+
+    #[test]
+    fn test_invalid_precision_display() {
+        let err = PolylineError::InvalidPrecision(15);
+        assert_eq!(
+            err.to_string(),
+            "Invalid precision 15, must be between 1 and 11"
+        );
+    }
+
+    #[test]
+    fn test_empty_input_display() {
+        let err = PolylineError::EmptyInput;
+        assert_eq!(err.to_string(), "Empty input provided");
+    }
+
+    #[test]
+    fn test_invalid_coordinate_display() {
+        let err = PolylineError::InvalidCoordinate("NaN value".to_string());
+        assert_eq!(err.to_string(), "Invalid coordinate: NaN value");
+    }
+
+    #[test]
+    fn test_error_trait_implementation() {
+        let err = PolylineError::TruncatedData;
+        let _: &dyn std::error::Error = &err;
+    }
+}
