@@ -524,6 +524,54 @@ pub mod batch_mod {
         }))
     }
 
+    #[pyfunction]
+    #[pyo3(signature = (paths))]
+    pub fn path_length_haversine_batch(
+        py: Python,
+        paths: &Bound<'_, PyList>,
+    ) -> PyResult<Vec<f64>> {
+        use crate::formats::python_to_coordinate_input;
+        use pyo3::types::PyList;
+
+        let all_paths: Vec<Vec<CoreLngLat>> = paths
+            .iter()
+            .map(|path_item| {
+                let path_list = path_item.cast::<PyList>()?;
+
+                // Try to extract as LngLat objects first, fall back to coordinate input conversion
+                if path_list.len() > 0 {
+                    if let Ok(_first_lnglat) = path_list.get_item(0)?.extract::<LngLat>() {
+                        // Path contains LngLat objects
+                        return path_list
+                            .iter()
+                            .map(|item| {
+                                let pt: LngLat = item.extract()?;
+                                Ok(pt.into())
+                            })
+                            .collect::<PyResult<Vec<_>>>();
+                    }
+                }
+
+                // Not LngLat objects, use format detection
+                let input = python_to_coordinate_input(&path_item)?;
+                let core_coords = rapidgeo_distance::formats::coords_to_lnglat_vec(&input);
+                Ok(core_coords)
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+
+        Ok(py.detach(move || {
+            all_paths
+                .into_iter()
+                .map(|core_pts| {
+                    core_pts
+                        .windows(2)
+                        .map(|pair| rapidgeo_distance::geodesic::haversine(pair[0], pair[1]))
+                        .sum()
+                })
+                .collect()
+        }))
+    }
+
     /// Calculate initial bearings between consecutive points in a path.
     ///
     /// Computes the compass bearing (azimuth) from each point to the next point
@@ -615,6 +663,7 @@ pub mod batch_mod {
         let m = PyModule::new(py, "batch")?;
         m.add_function(wrap_pyfunction!(pairwise_haversine, &m)?)?;
         m.add_function(wrap_pyfunction!(path_length_haversine, &m)?)?;
+        m.add_function(wrap_pyfunction!(path_length_haversine_batch, &m)?)?;
         m.add_function(wrap_pyfunction!(pairwise_bearings, &m)?)?;
 
         #[cfg(feature = "vincenty")]

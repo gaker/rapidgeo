@@ -507,10 +507,8 @@ pub fn destination(origin: LngLat, distance_m: f64, bearing_deg: f64) -> LngLat 
 
 #[inline]
 fn compute_destination_latitude(lat1_rad: f64, angular_distance: f64, bearing_rad: f64) -> f64 {
-    let sin_lat1 = lat1_rad.sin();
-    let cos_lat1 = lat1_rad.cos();
-    let cos_angular_distance = angular_distance.cos();
-    let sin_angular_distance = angular_distance.sin();
+    let (sin_lat1, cos_lat1) = lat1_rad.sin_cos();
+    let (sin_angular_distance, cos_angular_distance) = angular_distance.sin_cos();
     let cos_bearing = bearing_rad.cos();
 
     (sin_lat1 * cos_angular_distance + cos_lat1 * sin_angular_distance * cos_bearing).asin()

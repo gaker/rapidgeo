@@ -18,7 +18,7 @@ from rapidgeo.distance.euclid import (
     point_to_segment,
     point_to_segment_squared,
 )
-from rapidgeo.distance.batch import pairwise_haversine, path_length_haversine
+from rapidgeo.distance.batch import pairwise_haversine, path_length_haversine, path_length_haversine_batch
 
 
 class TestLngLat:
@@ -294,6 +294,91 @@ class TestBatchOperations:
         assert len(distances) == 99
         assert total_length > 0
         assert total_length == sum(distances)
+
+    def test_path_length_haversine_batch_lnglat(self):
+        """Test batch path length with LngLat objects"""
+        path1 = [LngLat(-120.2, 38.5), LngLat(-120.95, 40.7), LngLat(-126.453, 43.252)]
+        path2 = [LngLat(0.0, 0.0), LngLat(1.0, 0.0), LngLat(1.0, 1.0)]
+
+        distances = path_length_haversine_batch([path1, path2])
+
+        assert len(distances) == 2
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
+
+        assert abs(distances[0] - path_length_haversine(path1)) < 1e-10
+        assert abs(distances[1] - path_length_haversine(path2)) < 1e-10
+
+    def test_path_length_haversine_batch_tuples(self):
+        """Test batch path length with tuple coordinates"""
+        path1 = [(-120.2, 38.5), (-120.95, 40.7), (-126.453, 43.252)]
+        path2 = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+
+        distances = path_length_haversine_batch([path1, path2])
+
+        assert len(distances) == 2
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
+
+    def test_path_length_haversine_batch_lists(self):
+        """Test batch path length with list coordinates"""
+        path1 = [[-120.2, 38.5], [-120.95, 40.7], [-126.453, 43.252]]
+        path2 = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]
+
+        distances = path_length_haversine_batch([path1, path2])
+
+        assert len(distances) == 2
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
+
+    def test_path_length_haversine_batch_mixed_formats(self):
+        """Test batch with different coordinate formats per path"""
+        path1 = [LngLat(-120.2, 38.5), LngLat(-120.95, 40.7)]
+        path2 = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        path3 = [[-74.0, 40.0], [-73.0, 41.0]]
+
+        distances = path_length_haversine_batch([path1, path2, path3])
+
+        assert len(distances) == 3
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
+
+    def test_path_length_haversine_batch_empty_path(self):
+        """Test batch with empty paths"""
+        path1 = [LngLat(-120.2, 38.5), LngLat(-120.95, 40.7)]
+        path2 = []
+
+        distances = path_length_haversine_batch([path1, path2])
+
+        assert len(distances) == 2
+        assert distances[0] > 0
+        assert distances[1] == 0.0
+
+    def test_path_length_haversine_batch_single_point(self):
+        """Test batch with single-point paths"""
+        path1 = [LngLat(-120.2, 38.5), LngLat(-120.95, 40.7)]
+        path2 = [LngLat(0.0, 0.0)]
+
+        distances = path_length_haversine_batch([path1, path2])
+
+        assert len(distances) == 2
+        assert distances[0] > 0
+        assert distances[1] == 0.0
+
+    def test_path_length_haversine_batch_large(self):
+        """Test batch with many paths"""
+        paths = []
+        for i in range(100):
+            path = []
+            for j in range(10):
+                path.append(LngLat(-122.0 + j * 0.01, 37.0 + i * 0.01))
+            paths.append(path)
+
+        distances = path_length_haversine_batch(paths)
+
+        assert len(distances) == 100
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
 
 
 class TestDistanceEdgeCases:

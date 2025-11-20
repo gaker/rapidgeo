@@ -1,85 +1,212 @@
 #!/usr/bin/env python3
 
-# Simple test script to verify polyline functionality
-# Run this after building the Python module
+import pytest
 
-import sys
-import os
+from rapidgeo import LngLat
+from rapidgeo.polyline import (
+    encode,
+    decode,
+    encode_simplified,
+    simplify_polyline,
+    encode_batch,
+    decode_batch,
+    encode_simplified_batch,
+)
 
-sys.path.insert(0, os.path.dirname(__file__))
 
-try:
-    import rapidgeo
-
-    # Test basic encode/decode
-    print("Testing basic polyline encode/decode...")
-
-    # Create some test coordinates
-    coords = [
-        rapidgeo.LngLat(-120.2, 38.5),
-        rapidgeo.LngLat(-120.95, 40.7),
-        rapidgeo.LngLat(-126.453, 43.252),
+@pytest.fixture
+def sample_coords():
+    return [
+        LngLat(-120.2, 38.5),
+        LngLat(-120.95, 40.7),
+        LngLat(-126.453, 43.252),
     ]
 
-    # Test encoding
-    encoded = rapidgeo.polyline.encode(coords, 5)
-    print(f"Encoded polyline: {encoded}")
-    print(f"Expected: _p~iF~ps|U_ulLnnqC_mqNvxq`@")
 
-    # Test decoding
-    decoded = rapidgeo.polyline.decode(encoded, 5)
-    print(f"Decoded {len(decoded)} coordinates:")
+@pytest.fixture
+def sample_coords_tuples():
+    return [
+        (-120.2, 38.5),
+        (-120.95, 40.7),
+        (-126.453, 43.252),
+    ]
+
+
+@pytest.fixture
+def sample_coords_lists():
+    return [
+        [-120.2, 38.5],
+        [-120.95, 40.7],
+        [-126.453, 43.252],
+    ]
+
+
+def test_basic_encode_decode(sample_coords):
+    encoded = encode(sample_coords, 5)
+    assert isinstance(encoded, str)
+    assert len(encoded) > 0
+
+    decoded = decode(encoded, 5)
+    assert len(decoded) == len(sample_coords)
+
     for i, coord in enumerate(decoded):
-        print(f"  {i}: lng={coord.lng:.5f}, lat={coord.lat:.5f}")
+        assert abs(coord.lng - sample_coords[i].lng) < 0.00001
+        assert abs(coord.lat - sample_coords[i].lat) < 0.00001
 
-    # Test simplification
-    print("\nTesting polyline simplification...")
-    simplified = rapidgeo.polyline.simplify_polyline(encoded, 1000.0, "great_circle", 5)
-    print(f"Simplified polyline: {simplified}")
 
-    # Test direct simplified encoding
-    simplified_direct = rapidgeo.polyline.encode_simplified(
-        coords, 1000.0, "great_circle", 5
-    )
-    print(f"Direct simplified encoding: {simplified_direct}")
+def test_encode_simplified(sample_coords):
+    encoded = encode_simplified(sample_coords, tolerance_m=1000.0, method="great_circle", precision=5)
+    assert isinstance(encoded, str)
+    assert len(encoded) > 0
 
-    # Test batch operations if available
-    try:
-        print("\nTesting batch operations...")
-        coord_batches = [coords, coords[:2]]
 
-        encoded_batch = rapidgeo.polyline.encode_batch(coord_batches, 5)
-        print(f"Batch encoded {len(encoded_batch)} polylines:")
-        for i, polyline in enumerate(encoded_batch):
-            print(f"  {i}: {polyline}")
+def test_simplify_polyline(sample_coords):
+    encoded = encode(sample_coords, 5)
+    simplified = simplify_polyline(encoded, tolerance_m=1000.0, method="great_circle", precision=5)
+    assert isinstance(simplified, str)
 
-        decoded_batch = rapidgeo.polyline.decode_batch(encoded_batch, 5)
-        print(f"Batch decoded {len(decoded_batch)} coordinate sets:")
-        for i, coord_set in enumerate(decoded_batch):
-            print(f"  Set {i}: {len(coord_set)} coordinates")
 
-        # Test batch simplification
-        simplified_batch = rapidgeo.polyline.encode_simplified_batch(
-            coord_batches, 1000.0, "great_circle", 5
+def test_encode_batch_lnglat_objects(sample_coords):
+    coord_batches = [sample_coords, sample_coords[:2]]
+    encoded = encode_batch(coord_batches, 5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_encode_batch_tuples(sample_coords_tuples):
+    coord_batches = [sample_coords_tuples, sample_coords_tuples[:2]]
+    encoded = encode_batch(coord_batches, 5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_encode_batch_lists(sample_coords_lists):
+    coord_batches = [sample_coords_lists, sample_coords_lists[:2]]
+    encoded = encode_batch(coord_batches, 5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_encode_batch_different_batches_same_result(sample_coords, sample_coords_tuples, sample_coords_lists):
+    # Each batch format should produce the same encoding
+    encoded_lnglat = encode_batch([sample_coords], 5)
+    encoded_tuples = encode_batch([sample_coords_tuples], 5)
+    encoded_lists = encode_batch([sample_coords_lists], 5)
+
+    assert len(encoded_lnglat) == 1
+    assert len(encoded_tuples) == 1
+    assert len(encoded_lists) == 1
+    assert encoded_lnglat[0] == encoded_tuples[0] == encoded_lists[0]
+
+
+def test_encode_simplified_batch_lnglat_objects(sample_coords):
+    coord_batches = [sample_coords, sample_coords[:2]]
+    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_encode_simplified_batch_tuples(sample_coords_tuples):
+    coord_batches = [sample_coords_tuples, sample_coords_tuples[:2]]
+    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_encode_simplified_batch_lists(sample_coords_lists):
+    coord_batches = [sample_coords_lists, sample_coords_lists[:2]]
+    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_encode_simplified_batch_tuple_coordinates():
+    # Individual coordinates can be tuples, but the batch container must be a list
+    coords_with_tuples = [
+        (-120.2, 38.5),
+        (-120.95, 40.7),
+        (-126.453, 43.252),
+    ]
+    coord_batches = [coords_with_tuples, coords_with_tuples[:2]]
+    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+@pytest.mark.skipif(
+    not pytest.importorskip("numpy", reason="numpy not installed"),
+    reason="numpy not available"
+)
+def test_encode_simplified_batch_numpy_array():
+    import numpy as np
+
+    coords_np = np.array([
+        [-120.2, 38.5],
+        [-120.95, 40.7],
+        [-126.453, 43.252],
+    ])
+
+    coord_batches = [coords_np, coords_np[:2]]
+    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+@pytest.mark.skipif(
+    not pytest.importorskip("numpy", reason="numpy not installed"),
+    reason="numpy not available"
+)
+def test_encode_batch_numpy_array():
+    import numpy as np
+
+    coords_np = np.array([
+        [-120.2, 38.5],
+        [-120.95, 40.7],
+        [-126.453, 43.252],
+    ])
+
+    coord_batches = [coords_np, coords_np[:2]]
+    encoded = encode_batch(coord_batches, 5)
+
+    assert len(encoded) == 2
+    assert all(isinstance(p, str) for p in encoded)
+
+
+def test_decode_batch(sample_coords):
+    coord_batches = [sample_coords, sample_coords[:2]]
+    encoded = encode_batch(coord_batches, 5)
+    decoded = decode_batch(encoded, 5)
+
+    assert len(decoded) == 2
+    assert len(decoded[0]) == 3
+    assert len(decoded[1]) == 2
+
+
+def test_encode_simplified_batch_methods(sample_coords):
+    coord_batches = [sample_coords]
+
+    for method in ["great_circle", "planar", "euclidean"]:
+        encoded = encode_simplified_batch(
+            coord_batches,
+            tolerance_m=5.0,
+            method=method,
+            precision=5
         )
-        print(f"Batch simplified {len(simplified_batch)} polylines:")
-        for i, polyline in enumerate(simplified_batch):
-            print(f"  {i}: {polyline}")
+        assert len(encoded) == 1
+        assert isinstance(encoded[0], str)
 
-    except AttributeError:
-        print("Batch operations not available (batch feature not enabled)")
 
-    print("\n✅ All tests completed successfully!")
+def test_large_batch(sample_coords):
+    coord_batches = [sample_coords for _ in range(100)]
+    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, precision=5)
 
-except ImportError as e:
-    print(f"❌ Failed to import rapidgeo: {e}")
-    print("Make sure you've built the Python module with:")
-    print("  cargo build --features batch,numpy")
-    sys.exit(1)
-
-except Exception as e:
-    print(f"❌ Test failed with error: {e}")
-    import traceback
-
-    traceback.print_exc()
-    sys.exit(1)
+    assert len(encoded) == 100
+    assert all(isinstance(p, str) for p in encoded)
