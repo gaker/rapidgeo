@@ -8,7 +8,9 @@ the ordering of points along each curve. Often described as the "dog walking" di
 from .. import _rapidgeo
 
 discrete_frechet = _rapidgeo.similarity.frechet.discrete_frechet
-discrete_frechet_with_threshold = _rapidgeo.similarity.frechet.discrete_frechet_with_threshold
+discrete_frechet_with_threshold = (
+    _rapidgeo.similarity.frechet.discrete_frechet_with_threshold
+)
 
 __all__ = [
     "discrete_frechet",

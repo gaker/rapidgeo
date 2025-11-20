@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rapidgeo_similarity::{
     frechet::{discrete_frechet_distance, discrete_frechet_distance_with_threshold},
     hausdorff::{hausdorff_distance, hausdorff_distance_with_threshold},
@@ -68,35 +68,40 @@ fn bench_single_similarity_operations(c: &mut Criterion) {
 
     group.bench_function("frechet_two_points", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&path1),
-                black_box(&path2),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&path1),
+                std::hint::black_box(&path2),
             ))
         })
     });
 
     group.bench_function("hausdorff_two_points", |b| {
-        b.iter(|| black_box(hausdorff_distance(black_box(&path1), black_box(&path2))))
+        b.iter(|| {
+            std::hint::black_box(hausdorff_distance(
+                std::hint::black_box(&path1),
+                std::hint::black_box(&path2),
+            ))
+        })
     });
 
     // Test with threshold for early termination
     let threshold = 50000.0; // 50km threshold
     group.bench_function("frechet_with_threshold", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance_with_threshold(
-                black_box(&path1),
-                black_box(&path2),
-                black_box(threshold),
+            std::hint::black_box(discrete_frechet_distance_with_threshold(
+                std::hint::black_box(&path1),
+                std::hint::black_box(&path2),
+                std::hint::black_box(threshold),
             ))
         })
     });
 
     group.bench_function("hausdorff_with_threshold", |b| {
         b.iter(|| {
-            black_box(hausdorff_distance_with_threshold(
-                black_box(&path1),
-                black_box(&path2),
-                black_box(threshold),
+            std::hint::black_box(hausdorff_distance_with_threshold(
+                std::hint::black_box(&path1),
+                std::hint::black_box(&path2),
+                std::hint::black_box(threshold),
             ))
         })
     });
@@ -115,9 +120,9 @@ fn bench_scaling_complexity(c: &mut Criterion) {
         group.throughput(Throughput::Elements(complexity));
         group.bench_with_input(BenchmarkId::new("frechet_scaling", size), &size, |b, _| {
             b.iter(|| {
-                black_box(discrete_frechet_distance(
-                    black_box(&polyline_a),
-                    black_box(&polyline_b),
+                std::hint::black_box(discrete_frechet_distance(
+                    std::hint::black_box(&polyline_a),
+                    std::hint::black_box(&polyline_b),
                 ))
             })
         });
@@ -129,9 +134,9 @@ fn bench_scaling_complexity(c: &mut Criterion) {
             &size,
             |b, _| {
                 b.iter(|| {
-                    black_box(hausdorff_distance(
-                        black_box(&polyline_a),
-                        black_box(&polyline_b),
+                    std::hint::black_box(hausdorff_distance(
+                        std::hint::black_box(&polyline_a),
+                        std::hint::black_box(&polyline_b),
                     ))
                 })
             },
@@ -157,9 +162,9 @@ fn bench_asymmetric_sizes(c: &mut Criterion) {
             &(size_a, size_b),
             |b, _| {
                 b.iter(|| {
-                    black_box(discrete_frechet_distance(
-                        black_box(&polyline_a),
-                        black_box(&polyline_b),
+                    std::hint::black_box(discrete_frechet_distance(
+                        std::hint::black_box(&polyline_a),
+                        std::hint::black_box(&polyline_b),
                     ))
                 })
             },
@@ -171,9 +176,9 @@ fn bench_asymmetric_sizes(c: &mut Criterion) {
             &(size_a, size_b),
             |b, _| {
                 b.iter(|| {
-                    black_box(hausdorff_distance(
-                        black_box(&polyline_a),
-                        black_box(&polyline_b),
+                    std::hint::black_box(hausdorff_distance(
+                        std::hint::black_box(&polyline_a),
+                        std::hint::black_box(&polyline_b),
                     ))
                 })
             },
@@ -194,18 +199,18 @@ fn bench_edge_cases(c: &mut Criterion) {
     // Single point comparisons
     group.bench_function("frechet_single_vs_single", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&single_point),
-                black_box(&single_point),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&single_point),
+                std::hint::black_box(&single_point),
             ))
         })
     });
 
     group.bench_function("hausdorff_single_vs_single", |b| {
         b.iter(|| {
-            black_box(hausdorff_distance(
-                black_box(&single_point),
-                black_box(&single_point),
+            std::hint::black_box(hausdorff_distance(
+                std::hint::black_box(&single_point),
+                std::hint::black_box(&single_point),
             ))
         })
     });
@@ -214,18 +219,18 @@ fn bench_edge_cases(c: &mut Criterion) {
     group.throughput(Throughput::Elements(100));
     group.bench_function("frechet_single_vs_large", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&single_point),
-                black_box(&large_line),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&single_point),
+                std::hint::black_box(&large_line),
             ))
         })
     });
 
     group.bench_function("hausdorff_single_vs_large", |b| {
         b.iter(|| {
-            black_box(hausdorff_distance(
-                black_box(&single_point),
-                black_box(&large_line),
+            std::hint::black_box(hausdorff_distance(
+                std::hint::black_box(&single_point),
+                std::hint::black_box(&large_line),
             ))
         })
     });
@@ -234,18 +239,18 @@ fn bench_edge_cases(c: &mut Criterion) {
     group.throughput(Throughput::Elements(200));
     group.bench_function("frechet_small_vs_large", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&small_line),
-                black_box(&large_line),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&small_line),
+                std::hint::black_box(&large_line),
             ))
         })
     });
 
     group.bench_function("hausdorff_small_vs_large", |b| {
         b.iter(|| {
-            black_box(hausdorff_distance(
-                black_box(&small_line),
-                black_box(&large_line),
+            std::hint::black_box(hausdorff_distance(
+                std::hint::black_box(&small_line),
+                std::hint::black_box(&large_line),
             ))
         })
     });
@@ -263,45 +268,45 @@ fn bench_curve_shapes(c: &mut Criterion) {
 
     group.bench_function("frechet_straight_vs_straight", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&straight_line),
-                black_box(&straight_line),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&straight_line),
+                std::hint::black_box(&straight_line),
             ))
         })
     });
 
     group.bench_function("frechet_straight_vs_curved", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&straight_line),
-                black_box(&curved_line),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&straight_line),
+                std::hint::black_box(&curved_line),
             ))
         })
     });
 
     group.bench_function("frechet_realistic_paths", |b| {
         b.iter(|| {
-            black_box(discrete_frechet_distance(
-                black_box(&realistic_path),
-                black_box(&curved_line),
+            std::hint::black_box(discrete_frechet_distance(
+                std::hint::black_box(&realistic_path),
+                std::hint::black_box(&curved_line),
             ))
         })
     });
 
     group.bench_function("hausdorff_straight_vs_curved", |b| {
         b.iter(|| {
-            black_box(hausdorff_distance(
-                black_box(&straight_line),
-                black_box(&curved_line),
+            std::hint::black_box(hausdorff_distance(
+                std::hint::black_box(&straight_line),
+                std::hint::black_box(&curved_line),
             ))
         })
     });
 
     group.bench_function("hausdorff_realistic_paths", |b| {
         b.iter(|| {
-            black_box(hausdorff_distance(
-                black_box(&realistic_path),
-                black_box(&curved_line),
+            std::hint::black_box(hausdorff_distance(
+                std::hint::black_box(&realistic_path),
+                std::hint::black_box(&curved_line),
             ))
         })
     });
@@ -329,10 +334,10 @@ fn bench_threshold_early_termination(c: &mut Criterion) {
             &threshold,
             |b, &thresh| {
                 b.iter(|| {
-                    black_box(discrete_frechet_distance_with_threshold(
-                        black_box(&path_a),
-                        black_box(&path_b),
-                        black_box(thresh),
+                    std::hint::black_box(discrete_frechet_distance_with_threshold(
+                        std::hint::black_box(&path_a),
+                        std::hint::black_box(&path_b),
+                        std::hint::black_box(thresh),
                     ))
                 })
             },
@@ -343,10 +348,10 @@ fn bench_threshold_early_termination(c: &mut Criterion) {
             &threshold,
             |b, &thresh| {
                 b.iter(|| {
-                    black_box(hausdorff_distance_with_threshold(
-                        black_box(&path_a),
-                        black_box(&path_b),
-                        black_box(thresh),
+                    std::hint::black_box(hausdorff_distance_with_threshold(
+                        std::hint::black_box(&path_a),
+                        std::hint::black_box(&path_b),
+                        std::hint::black_box(thresh),
                     ))
                 })
             },
@@ -380,7 +385,13 @@ fn bench_batch_operations(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("batch_frechet", batch_size),
             &batch_size,
-            |b, _| b.iter(|| black_box(batch::batch_frechet_distance(black_box(&polyline_pairs)))),
+            |b, _| {
+                b.iter(|| {
+                    std::hint::black_box(batch::batch_frechet_distance(std::hint::black_box(
+                        &polyline_pairs,
+                    )))
+                })
+            },
         );
 
         // Test with threshold
@@ -390,9 +401,9 @@ fn bench_batch_operations(c: &mut Criterion) {
             &batch_size,
             |b, _| {
                 b.iter(|| {
-                    black_box(batch::batch_frechet_distance_threshold(
-                        black_box(&polyline_pairs),
-                        black_box(threshold),
+                    std::hint::black_box(batch::batch_frechet_distance_threshold(
+                        std::hint::black_box(&polyline_pairs),
+                        std::hint::black_box(threshold),
                     ))
                 })
             },
@@ -427,7 +438,7 @@ fn bench_batch_operations(c: &mut Criterion) {
                         .zip(polylines_b.iter())
                         .map(|(a, b)| discrete_frechet_distance(a, b).unwrap())
                         .collect();
-                    black_box(results);
+                    std::hint::black_box(results);
                 })
             },
         );

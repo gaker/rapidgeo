@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rapidgeo_distance::LngLat;
 use rapidgeo_simplify::{simplify_dp_into, simplify_dp_mask, SimplifyMethod};
 
@@ -109,10 +109,10 @@ fn bench_single_simplify_operations(c: &mut Criterion) {
             let mut mask = Vec::new();
             b.iter(|| {
                 simplify_dp_mask(
-                    black_box(&points),
-                    black_box(tolerance),
-                    black_box(method),
-                    black_box(&mut mask),
+                    std::hint::black_box(&points),
+                    std::hint::black_box(tolerance),
+                    std::hint::black_box(method),
+                    std::hint::black_box(&mut mask),
                 );
             })
         });
@@ -121,10 +121,10 @@ fn bench_single_simplify_operations(c: &mut Criterion) {
             let mut output = Vec::new();
             b.iter(|| {
                 simplify_dp_into(
-                    black_box(&points),
-                    black_box(tolerance),
-                    black_box(method),
-                    black_box(&mut output),
+                    std::hint::black_box(&points),
+                    std::hint::black_box(tolerance),
+                    std::hint::black_box(method),
+                    std::hint::black_box(&mut output),
                 );
             })
         });
@@ -150,10 +150,10 @@ fn bench_simplify_scaling(c: &mut Criterion) {
                 let mut mask = Vec::new();
                 b.iter(|| {
                     simplify_dp_mask(
-                        black_box(pts),
-                        black_box(tolerance),
-                        black_box(method),
-                        black_box(&mut mask),
+                        std::hint::black_box(pts),
+                        std::hint::black_box(tolerance),
+                        std::hint::black_box(method),
+                        std::hint::black_box(&mut mask),
                     );
                 })
             },
@@ -166,10 +166,10 @@ fn bench_simplify_scaling(c: &mut Criterion) {
                 let mut output = Vec::new();
                 b.iter(|| {
                     simplify_dp_into(
-                        black_box(pts),
-                        black_box(tolerance),
-                        black_box(method),
-                        black_box(&mut output),
+                        std::hint::black_box(pts),
+                        std::hint::black_box(tolerance),
+                        std::hint::black_box(method),
+                        std::hint::black_box(&mut output),
                     );
                 })
             },
@@ -193,10 +193,10 @@ fn bench_different_geometries(c: &mut Criterion) {
         let mut mask = Vec::new();
         b.iter(|| {
             simplify_dp_mask(
-                black_box(&gps_trace),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut mask),
+                std::hint::black_box(&gps_trace),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut mask),
             );
         });
     });
@@ -207,10 +207,10 @@ fn bench_different_geometries(c: &mut Criterion) {
         let mut mask = Vec::new();
         b.iter(|| {
             simplify_dp_mask(
-                black_box(&gc_trace),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut mask),
+                std::hint::black_box(&gc_trace),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut mask),
             );
         });
     });
@@ -221,10 +221,10 @@ fn bench_different_geometries(c: &mut Criterion) {
         let mut mask = Vec::new();
         b.iter(|| {
             simplify_dp_mask(
-                black_box(&sawtooth),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut mask),
+                std::hint::black_box(&sawtooth),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut mask),
             );
         });
     });
@@ -248,10 +248,10 @@ fn bench_tolerance_scaling(c: &mut Criterion) {
                 let mut mask = Vec::new();
                 b.iter(|| {
                     simplify_dp_mask(
-                        black_box(&points),
-                        black_box(tol),
-                        black_box(method),
-                        black_box(&mut mask),
+                        std::hint::black_box(&points),
+                        std::hint::black_box(tol),
+                        std::hint::black_box(method),
+                        std::hint::black_box(&mut mask),
                     );
                 });
             },
@@ -277,12 +277,12 @@ fn bench_memory_allocation_vs_reuse(c: &mut Criterion) {
     group.bench_function("dp_mask_reuse_buffer", |b| {
         b.iter(|| {
             simplify_dp_mask(
-                black_box(&points),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut mask_buffer),
+                std::hint::black_box(&points),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut mask_buffer),
             );
-            black_box(&mask_buffer);
+            std::hint::black_box(&mask_buffer);
         });
     });
 
@@ -290,12 +290,12 @@ fn bench_memory_allocation_vs_reuse(c: &mut Criterion) {
         b.iter(|| {
             let mut mask = Vec::new();
             simplify_dp_mask(
-                black_box(&points),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut mask),
+                std::hint::black_box(&points),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut mask),
             );
-            black_box(&mask);
+            std::hint::black_box(&mask);
         });
     });
 
@@ -303,12 +303,12 @@ fn bench_memory_allocation_vs_reuse(c: &mut Criterion) {
     group.bench_function("dp_into_reuse_buffer", |b| {
         b.iter(|| {
             simplify_dp_into(
-                black_box(&points),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut output_buffer),
+                std::hint::black_box(&points),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut output_buffer),
             );
-            black_box(&output_buffer);
+            std::hint::black_box(&output_buffer);
         });
     });
 
@@ -316,12 +316,12 @@ fn bench_memory_allocation_vs_reuse(c: &mut Criterion) {
         b.iter(|| {
             let mut output = Vec::new();
             simplify_dp_into(
-                black_box(&points),
-                black_box(tolerance),
-                black_box(method),
-                black_box(&mut output),
+                std::hint::black_box(&points),
+                std::hint::black_box(tolerance),
+                std::hint::black_box(method),
+                std::hint::black_box(&mut output),
             );
-            black_box(&output);
+            std::hint::black_box(&output);
         });
     });
 
@@ -358,11 +358,11 @@ fn bench_batch_operations(c: &mut Criterion) {
                 |b, polys| {
                     b.iter(|| {
                         let results = batch::simplify_batch_par(
-                            black_box(polys),
-                            black_box(25.0),
-                            black_box(SimplifyMethod::GreatCircleMeters),
+                            std::hint::black_box(polys),
+                            std::hint::black_box(25.0),
+                            std::hint::black_box(SimplifyMethod::GreatCircleMeters),
                         );
-                        black_box(results);
+                        std::hint::black_box(results);
                     });
                 },
             );
@@ -373,11 +373,11 @@ fn bench_batch_operations(c: &mut Criterion) {
                 |b, polys| {
                     b.iter(|| {
                         let results = batch::simplify_batch(
-                            black_box(polys),
-                            black_box(25.0),
-                            black_box(SimplifyMethod::GreatCircleMeters),
+                            std::hint::black_box(polys),
+                            std::hint::black_box(25.0),
+                            std::hint::black_box(SimplifyMethod::GreatCircleMeters),
                         );
-                        black_box(results);
+                        std::hint::black_box(results);
                     });
                 },
             );
@@ -421,7 +421,7 @@ fn bench_batch_operations(c: &mut Criterion) {
                     output
                 })
                 .collect();
-            black_box(results);
+            std::hint::black_box(results);
         });
     });
 

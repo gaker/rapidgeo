@@ -482,10 +482,10 @@ class TestDestination:
     def test_destination_basic(self):
         """Test basic destination calculation"""
         origin = LngLat(0.0, 0.0)
-        
+
         # Go 100km due north
         dest = destination(origin, 100000, 0.0)
-        
+
         # Should be roughly at 0°, 0.9° (about 100km north)
         assert abs(dest.lng - 0.0) < 0.01
         assert 0.8 < dest.lat < 1.0
@@ -493,10 +493,10 @@ class TestDestination:
     def test_destination_due_east(self):
         """Test destination due east"""
         origin = LngLat(0.0, 0.0)
-        
+
         # Go 100km due east
         dest = destination(origin, 100000, 90.0)
-        
+
         # Should be roughly at 0.9°, 0° (about 100km east at equator)
         assert 0.8 < dest.lng < 1.0
         assert abs(dest.lat - 0.0) < 0.01
@@ -506,14 +506,14 @@ class TestDestination:
         origin = LngLat(-122.4194, 37.7749)  # San Francisco
         distance_m = 50000  # 50km
         bearing_deg = 45.0  # Northeast
-        
+
         # Calculate destination
         dest = destination(origin, distance_m, bearing_deg)
-        
+
         # Calculate distance and bearing back
         calculated_distance = haversine(origin, dest)
         calculated_bearing = bearing(origin, dest)
-        
+
         # Should be close (within spherical approximation tolerance)
         assert abs(calculated_distance - distance_m) < 100  # Within 100m
         assert abs(calculated_bearing - bearing_deg) < 0.1  # Within 0.1°
@@ -521,9 +521,9 @@ class TestDestination:
     def test_destination_zero_distance(self):
         """Test destination with zero distance"""
         origin = LngLat(-122.0, 37.0)
-        
+
         dest = destination(origin, 0.0, 45.0)
-        
+
         # Should return same point
         assert abs(dest.lng - origin.lng) < 1e-10
         assert abs(dest.lat - origin.lat) < 1e-10
@@ -531,10 +531,10 @@ class TestDestination:
     def test_destination_antimeridian_crossing(self):
         """Test destination crossing antimeridian"""
         origin = LngLat(179.0, 0.0)  # Near antimeridian
-        
+
         # Go east across antimeridian
         dest = destination(origin, 200000, 90.0)  # 200km east
-        
+
         # Should wrap to negative longitude
         assert dest.lng < 0
         assert dest.lng > -180
@@ -543,16 +543,16 @@ class TestDestination:
         """Test destination with various bearings"""
         origin = LngLat(0.0, 0.0)
         distance_m = 100000  # 100km
-        
+
         bearings = [0, 45, 90, 135, 180, 225, 270, 315]
-        
+
         for bear in bearings:
             dest = destination(origin, distance_m, float(bear))
-            
+
             # All destinations should be valid coordinates
             assert -180 <= dest.lng <= 180
             assert -90 <= dest.lat <= 90
-            
+
             # Distance should be approximately correct
             calc_dist = haversine(origin, dest)
             assert abs(calc_dist - distance_m) < 1000  # Within 1km tolerance

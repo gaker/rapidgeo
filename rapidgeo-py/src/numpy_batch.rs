@@ -4,7 +4,7 @@ use rapidgeo_distance::{geodesic, LngLat as CoreLngLat};
 use rayon::prelude::*;
 
 #[pyfunction]
-pub fn pairwise_haversine_numpy(
+pub fn pairwise_haversine(
     py: Python,
     points_lng: PyReadonlyArray1<f64>,
     points_lat: PyReadonlyArray1<f64>,
@@ -39,7 +39,7 @@ pub fn pairwise_haversine_numpy(
 }
 
 #[pyfunction]
-pub fn distances_to_point_numpy(
+pub fn distances_to_point(
     py: Python,
     points_lng: PyReadonlyArray1<f64>,
     points_lat: PyReadonlyArray1<f64>,
@@ -74,7 +74,7 @@ pub fn distances_to_point_numpy(
 }
 
 #[pyfunction]
-pub fn path_length_haversine_numpy(
+pub fn path_length_haversine(
     py: Python,
     points_lng: PyReadonlyArray1<f64>,
     points_lat: PyReadonlyArray1<f64>,
@@ -108,8 +108,8 @@ pub fn path_length_haversine_numpy(
 
 pub fn create_module(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     let m = PyModule::new(py, "numpy")?;
-    m.add_function(wrap_pyfunction!(pairwise_haversine_numpy, &m)?)?;
-    m.add_function(wrap_pyfunction!(distances_to_point_numpy, &m)?)?;
-    m.add_function(wrap_pyfunction!(path_length_haversine_numpy, &m)?)?;
+    m.add_function(wrap_pyfunction!(pairwise_haversine, &m)?)?;
+    m.add_function(wrap_pyfunction!(distances_to_point, &m)?)?;
+    m.add_function(wrap_pyfunction!(path_length_haversine, &m)?)?;
     Ok(m)
 }

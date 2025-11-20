@@ -172,3 +172,102 @@ impl PerpDistance for XtEuclid {
         (dpx * dpx + dpy * dpy).sqrt()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_euclid_perpendicular_distance() {
+        let backend = XtEuclid;
+        let a = LngLat::new_deg(0.0, 0.0);
+        let b = LngLat::new_deg(10.0, 0.0);
+        let p = LngLat::new_deg(5.0, 3.0);
+
+        let dist = backend.d_perp_m(a, b, p);
+        assert!((dist - 3.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_euclid_point_on_line() {
+        let backend = XtEuclid;
+        let a = LngLat::new_deg(0.0, 0.0);
+        let b = LngLat::new_deg(10.0, 0.0);
+        let p = LngLat::new_deg(5.0, 0.0);
+
+        let dist = backend.d_perp_m(a, b, p);
+        assert!(dist.abs() < 0.001);
+    }
+
+    #[test]
+    fn test_euclid_point_at_endpoint() {
+        let backend = XtEuclid;
+        let a = LngLat::new_deg(0.0, 0.0);
+        let b = LngLat::new_deg(10.0, 0.0);
+
+        let dist_a = backend.d_perp_m(a, b, a);
+        let dist_b = backend.d_perp_m(a, b, b);
+
+        assert!(dist_a.abs() < 0.001);
+        assert!(dist_b.abs() < 0.001);
+    }
+
+    #[test]
+    fn test_euclid_degenerate_segment() {
+        let backend = XtEuclid;
+        let a = LngLat::new_deg(5.0, 5.0);
+        let b = LngLat::new_deg(5.0, 5.0);
+        let p = LngLat::new_deg(8.0, 9.0);
+
+        let dist = backend.d_perp_m(a, b, p);
+        let expected = (3.0_f64 * 3.0 + 4.0 * 4.0).sqrt();
+        assert!((dist - expected).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_euclid_projection_beyond_segment() {
+        let backend = XtEuclid;
+        let a = LngLat::new_deg(0.0, 0.0);
+        let b = LngLat::new_deg(5.0, 0.0);
+        let p = LngLat::new_deg(10.0, 3.0);
+
+        let dist = backend.d_perp_m(a, b, p);
+        let expected = (5.0_f64 * 5.0 + 3.0 * 3.0).sqrt();
+        assert!((dist - expected).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_great_circle_basic() {
+        let backend = XtGreatCircle;
+        let a = LngLat::new_deg(-122.0, 37.0);
+        let b = LngLat::new_deg(-121.0, 37.0);
+        let p = LngLat::new_deg(-121.5, 37.1);
+
+        let dist = backend.d_perp_m(a, b, p);
+        assert!(dist > 10000.0 && dist < 12000.0);
+    }
+
+    #[test]
+    fn test_great_circle_point_on_line() {
+        let backend = XtGreatCircle;
+        let a = LngLat::new_deg(-122.0, 37.0);
+        let b = LngLat::new_deg(-121.0, 37.0);
+        let p = LngLat::new_deg(-121.5, 37.0);
+
+        let dist = backend.d_perp_m(a, b, p);
+        assert!(dist < 1000.0);
+    }
+
+    #[test]
+    fn test_enu_basic() {
+        let origin = LngLat::new_deg(-121.5, 37.0);
+        let backend = XtEnu { origin };
+
+        let a = LngLat::new_deg(-122.0, 37.0);
+        let b = LngLat::new_deg(-121.0, 37.0);
+        let p = LngLat::new_deg(-121.5, 37.1);
+
+        let dist = backend.d_perp_m(a, b, p);
+        assert!(dist > 10000.0 && dist < 12000.0);
+    }
+}

@@ -9,7 +9,7 @@ homepage.workspace = true
 repository.workspace = true
 keywords = ["distance", "geodesic", "haversine", "vincenty", "geometry"]
 categories = ["science::geo", "algorithms"]
-publish = false  # This is for PyPI, not crates.io
+publish = false
 
 [lib]
 name = "rapidgeo"
@@ -21,14 +21,14 @@ vincenty = []
 batch = ["rayon", "rapidgeo-distance/batch"]
 
 [dependencies]
-pyo3 = { version = "0.26", features = ["extension-module"] }
-numpy = { version = "0.26" }
-rayon = { version = "1.11", optional = true }
+pyo3 = { workspace = true, features = ["extension-module"] }
+numpy = { version = "0.27" }
+rayon = { workspace = true, optional = true }
 rapidgeo-distance = { path = "../rapidgeo-distance", features = ["batch"] }
 rapidgeo-simplify = { path = "../rapidgeo-simplify", features = ["batch"] }
 rapidgeo-polyline = { path = "../rapidgeo-polyline", features = ["batch"] }
 rapidgeo-similarity = { path = "../rapidgeo-similarity", features = ["batch"] }
 
 [dev-dependencies]
-criterion = { version = "0.7", features = ["html_reports"] }
+criterion = { workspace = true, features = ["html_reports"] }
 

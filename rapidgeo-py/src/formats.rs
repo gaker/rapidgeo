@@ -123,28 +123,28 @@ pub fn python_to_coordinate_input(coords: &Bound<'_, PyAny>) -> PyResult<Coordin
     // Try NumPy array first (zero-copy when possible) - only if numpy is available
     if is_numpy_available(coords.py()) {
         // PRIORITY 1: Contiguous 2D arrays (FASTEST PATH)
-        if let Ok(array) = coords.downcast::<PyArray2<f64>>() {
+        if let Ok(array) = coords.cast::<PyArray2<f64>>() {
             return parse_numpy_2d_array(array);
         }
 
         // PRIORITY 2: Dynamic f64 arrays
-        if let Ok(array) = coords.downcast::<PyArrayDyn<f64>>() {
+        if let Ok(array) = coords.cast::<PyArrayDyn<f64>>() {
             return parse_numpy_array(array);
         }
 
         // PRIORITY 3: 1D f64 arrays
-        if let Ok(array) = coords.downcast::<PyArray1<f64>>() {
+        if let Ok(array) = coords.cast::<PyArray1<f64>>() {
             return parse_numpy_array_1d(array);
         }
 
         // PRIORITY 4: Object arrays (SLOWEST - but still better than Python loops)
-        if let Ok(array) = coords.downcast::<PyArrayDyn<Py<PyAny>>>() {
+        if let Ok(array) = coords.cast::<PyArrayDyn<Py<PyAny>>>() {
             return parse_numpy_object_array(array);
         }
     }
 
     // Fall back to Python list processing
-    let py_list = coords.downcast::<PyList>()?;
+    let py_list = coords.cast::<PyList>()?;
 
     if py_list.len() == 0 {
         return Ok(CoordinateInput::Tuples(vec![]));
@@ -156,7 +156,7 @@ pub fn python_to_coordinate_input(coords: &Bound<'_, PyAny>) -> PyResult<Coordin
         return parse_flat_array(py_list);
     }
 
-    if let Ok(dict) = first_item.downcast::<PyDict>() {
+    if let Ok(dict) = first_item.cast::<PyDict>() {
         if dict.contains("coordinates")? {
             return parse_geojson_list(py_list);
         }
@@ -244,11 +244,11 @@ fn parse_geojson_list(py_list: &Bound<'_, PyList>) -> PyResult<CoordinateInput> 
 
 #[inline]
 fn parse_geojson_point(item: Bound<'_, PyAny>) -> PyResult<GeoPoint> {
-    let dict: &Bound<'_, PyDict> = item.downcast()?;
+    let dict: &Bound<'_, PyDict> = item.cast()?;
     let coords_item = dict
         .get_item("coordinates")?
         .ok_or_else(|| pyo3::exceptions::PyKeyError::new_err("Missing 'coordinates' key"))?;
-    let coords_list: &Bound<'_, PyList> = coords_item.downcast()?;
+    let coords_list: &Bound<'_, PyList> = coords_item.cast()?;
     if coords_list.len() != 2 {
         return Err(pyo3::exceptions::PyValueError::new_err(
             "GeoJSON coordinates must have exactly 2 elements",
@@ -268,12 +268,12 @@ fn parse_tuple_list(py_list: &Bound<'_, PyList>) -> PyResult<CoordinateInput> {
 
     for item in py_list.iter() {
         // Handle both tuples and lists
-        let (x, y) = if let Ok(tuple) = item.downcast::<PyTuple>() {
+        let (x, y) = if let Ok(tuple) = item.cast::<PyTuple>() {
             // Tuple format: (lng, lat)
             let x: f64 = tuple.get_item(0)?.extract()?;
             let y: f64 = tuple.get_item(1)?.extract()?;
             (x, y)
-        } else if let Ok(list) = item.downcast::<PyList>() {
+        } else if let Ok(list) = item.cast::<PyList>() {
             // List format: [lng, lat]
             let x: f64 = list.get_item(0)?.extract()?;
             let y: f64 = list.get_item(1)?.extract()?;
@@ -343,9 +343,10 @@ fn parse_numpy_object_array(array: &Bound<'_, PyArrayDyn<Py<PyAny>>>) -> PyResul
 
     let mut tuples = Vec::with_capacity(objects.len());
 
-    for obj in objects {
+    for obj in objects.iter() {
         // Each object should be a NumPy array with 2 elements
-        if let Ok(coord_array) = obj.downcast_bound::<PyArrayDyn<f64>>(array.py()) {
+        let bound = obj.bind(array.py());
+        if let Ok(coord_array) = bound.cast::<PyArrayDyn<f64>>() {
             let coord_readonly = coord_array.readonly();
             let coord_slice = coord_readonly.as_slice()?;
 

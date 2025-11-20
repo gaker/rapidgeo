@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rapidgeo_polyline::{decode, encode, LngLat};
 
 #[cfg(feature = "batch")]
@@ -39,7 +39,7 @@ fn bench_encode_sizes(c: &mut Criterion) {
         group.throughput(Throughput::Elements(*size as u64));
 
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &_size| {
-            b.iter(|| encode(black_box(&coords), black_box(5)));
+            b.iter(|| encode(std::hint::black_box(&coords), std::hint::black_box(5)));
         });
     }
     group.finish();
@@ -54,7 +54,7 @@ fn bench_decode_sizes(c: &mut Criterion) {
 
         group.throughput(Throughput::Elements(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), &encoded, |b, encoded| {
-            b.iter(|| decode(black_box(encoded), black_box(5)));
+            b.iter(|| decode(std::hint::black_box(encoded), std::hint::black_box(5)));
         });
     }
     group.finish();
@@ -69,7 +69,12 @@ fn bench_precision_impact(c: &mut Criterion) {
             BenchmarkId::new("encode", precision),
             precision,
             |b, &precision| {
-                b.iter(|| encode(black_box(&coords), black_box(precision)));
+                b.iter(|| {
+                    encode(
+                        std::hint::black_box(&coords),
+                        std::hint::black_box(precision),
+                    )
+                });
             },
         );
     }
@@ -93,15 +98,30 @@ fn bench_coordinate_patterns(c: &mut Criterion) {
         .collect();
 
     group.bench_function("uniform_distribution", |b| {
-        b.iter(|| encode(black_box(&uniform_coords), black_box(5)))
+        b.iter(|| {
+            encode(
+                std::hint::black_box(&uniform_coords),
+                std::hint::black_box(5),
+            )
+        })
     });
 
     group.bench_function("realistic_gps_track", |b| {
-        b.iter(|| encode(black_box(&realistic_route), black_box(5)))
+        b.iter(|| {
+            encode(
+                std::hint::black_box(&realistic_route),
+                std::hint::black_box(5),
+            )
+        })
     });
 
     group.bench_function("extreme_deltas", |b| {
-        b.iter(|| encode(black_box(&extreme_coords), black_box(5)))
+        b.iter(|| {
+            encode(
+                std::hint::black_box(&extreme_coords),
+                std::hint::black_box(5),
+            )
+        })
     });
 
     group.finish();
@@ -116,8 +136,10 @@ fn bench_roundtrip_performance(c: &mut Criterion) {
 
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &_size| {
             b.iter(|| {
-                let encoded = encode(black_box(&coords), black_box(5)).unwrap();
-                let _decoded = decode(black_box(&encoded), black_box(5)).unwrap();
+                let encoded =
+                    encode(std::hint::black_box(&coords), std::hint::black_box(5)).unwrap();
+                let _decoded =
+                    decode(std::hint::black_box(&encoded), std::hint::black_box(5)).unwrap();
             });
         });
     }
@@ -147,7 +169,10 @@ fn bench_batch_vs_sequential(c: &mut Criterion) {
 
     group.bench_function("small_polylines_batch", |b| {
         b.iter(|| {
-            let _encoded = encode_batch(black_box(&small_polylines), black_box(5));
+            let _encoded = encode_batch(
+                std::hint::black_box(&small_polylines),
+                std::hint::black_box(5),
+            );
         })
     });
 
@@ -162,7 +187,10 @@ fn bench_batch_vs_sequential(c: &mut Criterion) {
 
     group.bench_function("large_polylines_batch", |b| {
         b.iter(|| {
-            let _encoded = encode_batch(black_box(&large_polylines), black_box(5));
+            let _encoded = encode_batch(
+                std::hint::black_box(&large_polylines),
+                std::hint::black_box(5),
+            );
         })
     });
 
@@ -183,7 +211,7 @@ fn bench_memory_patterns(c: &mut Criterion) {
             for i in 0..coords.len() {
                 result.push_str(&format!("test{}", i)); // Simulate growing string
             }
-            black_box(result);
+            std::hint::black_box(result);
         })
     });
 
@@ -194,7 +222,7 @@ fn bench_memory_patterns(c: &mut Criterion) {
             for i in 0..coords.len() {
                 result.push_str(&format!("test{}", i));
             }
-            black_box(result);
+            std::hint::black_box(result);
         })
     });
 
@@ -202,7 +230,7 @@ fn bench_memory_patterns(c: &mut Criterion) {
         b.iter(|| {
             // Current approach: collect bytes into Vec
             let bytes: Vec<u8> = encoded.bytes().collect();
-            black_box(bytes);
+            std::hint::black_box(bytes);
         })
     });
 
@@ -210,7 +238,7 @@ fn bench_memory_patterns(c: &mut Criterion) {
         b.iter(|| {
             // Better approach: direct byte iteration
             for byte in encoded.bytes() {
-                black_box(byte);
+                std::hint::black_box(byte);
             }
         })
     });

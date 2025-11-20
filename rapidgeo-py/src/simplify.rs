@@ -70,7 +70,7 @@ pub mod batch_mod {
         let polylines_len = polylines.len();
         let mut core_polylines = Vec::with_capacity(polylines_len);
         for polyline_item in polylines.iter() {
-            let polyline: &Bound<'_, PyList> = polyline_item.downcast()?;
+            let polyline: &Bound<'_, PyList> = polyline_item.cast()?;
             let pts_len = polyline.len();
             let mut pts = Vec::with_capacity(pts_len);
             for pt_item in polyline.iter() {

@@ -15,7 +15,7 @@ vincenty_distance = distance.geo.vincenty_distance
 
 __all__ = [
     "haversine",
-    "haversine_km", 
+    "haversine_km",
     "haversine_miles",
     "haversine_nautical",
     "bearing",

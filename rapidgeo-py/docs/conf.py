@@ -9,48 +9,49 @@ from datetime import datetime
 
 # For Read the Docs: Don't add local path, use installed package
 # For local development: Add path if package not installed
-if 'READTHEDOCS' not in os.environ:
+if "READTHEDOCS" not in os.environ:
     try:
         import rapidgeo
     except ImportError:
-        sys.path.insert(0, os.path.abspath('../python'))
+        sys.path.insert(0, os.path.abspath("../python"))
 
 # Project information
-project = 'rapidgeo'
-copyright = f'{datetime.now().year}, Greg Aker'
-author = 'Greg Aker'
+project = "rapidgeo"
+copyright = f"{datetime.now().year}, Greg Aker"
+author = "Greg Aker"
 
 # The short X.Y version
-version = ''
+version = ""
 # The full version, including alpha/beta/rc tags
-release = ''
+release = ""
 
 try:
     import rapidgeo
+
     version = rapidgeo.__version__
     release = rapidgeo.__version__
 except ImportError:
-    version = 'unknown'
-    release = 'unknown'
+    version = "unknown"
+    release = "unknown"
 
 # Extensions
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-    'sphinx_autodoc_typehints',
-    'myst_parser',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx_autodoc_typehints",
+    "myst_parser",
 ]
 
 # Autodoc configuration
 autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__'
+    "members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+    "undoc-members": True,
+    "exclude-members": "__weakref__",
 }
 
 # Suppress specific warnings
@@ -60,8 +61,8 @@ suppress_warnings = [
 ]
 
 # Autodoc type hints configuration
-autodoc_typehints = 'description'
-autodoc_typehints_description_target = 'documented'
+autodoc_typehints = "description"
+autodoc_typehints_description_target = "documented"
 
 # Autosummary configuration
 autosummary_generate = True
@@ -84,8 +85,8 @@ napoleon_attr_annotations = True
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
 }
 
 # MyST parser configuration
@@ -94,22 +95,22 @@ myst_enable_extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
-source_suffix = ['.rst', '.md']
+source_suffix = [".rst", ".md"]
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # HTML output options
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
+html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
 
 # # Theme options
 # html_theme_options = {
@@ -129,11 +130,11 @@ html_static_path = ['_static']
 # }
 
 html_context = {
-    "display_github": True, # Integrate GitHub
-    "github_user": "gaker", # Username
-    "github_repo": "rapidgeo", # Repo name
-    "github_version": "main", # Version
-    "conf_py_path": "/rapidgeo-py/docs", # Path in the checkout to the docs root
+    "display_github": True,  # Integrate GitHub
+    "github_user": "gaker",  # Username
+    "github_repo": "rapidgeo",  # Repo name
+    "github_version": "main",  # Version
+    "conf_py_path": "/rapidgeo-py/docs",  # Path in the checkout to the docs root
 }
 
 # Add any extra paths that contain custom files (such as robots.txt or
@@ -141,33 +142,35 @@ html_context = {
 html_extra_path = []
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'rapidgeodoc'
+htmlhelp_basename = "rapidgeodoc"
 
 # LaTeX output options
 latex_elements = {
-    'papersize': 'letterpaper',
-    'pointsize': '10pt',
-    'preamble': '',
-    'figure_align': 'htbp',
+    "papersize": "letterpaper",
+    "pointsize": "10pt",
+    "preamble": "",
+    "figure_align": "htbp",
 }
 
 # Grouping the document tree into LaTeX files.
 latex_documents = [
-    (master_doc, 'rapidgeo.tex', 'rapidgeo Documentation',
-     'gaker', 'manual'),
+    (master_doc, "rapidgeo.tex", "rapidgeo Documentation", "gaker", "manual"),
 ]
 
 # Manual page output
-man_pages = [
-    (master_doc, 'rapidgeo', 'rapidgeo Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "rapidgeo", "rapidgeo Documentation", [author], 1)]
 
 # Texinfo output
 texinfo_documents = [
-    (master_doc, 'rapidgeo', 'rapidgeo Documentation',
-     author, 'rapidgeo', 'Fast geographic and planar distance calculations.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "rapidgeo",
+        "rapidgeo Documentation",
+        author,
+        "rapidgeo",
+        "Fast geographic and planar distance calculations.",
+        "Miscellaneous",
+    ),
 ]
 
 # Epub output

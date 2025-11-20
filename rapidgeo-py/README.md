@@ -16,14 +16,15 @@ pip install rapidgeo[numpy]   # With NumPy support
 ## Quick Start
 
 ```python
-from rapidgeo.distance import LngLat
-from rapidgeo.distance.geo import haversine, vincenty_distance
+from rapidgeo import LngLat
+from rapidgeo.distance.geo import haversine
 
-# Create coordinates (longitude, latitude)
-sf = LngLat.new_deg(-122.4194, 37.7749)   # San Francisco
-nyc = LngLat.new_deg(-74.0060, 40.7128)   # New York City
+# Create coordinates (longitude, latitude) - multiple formats supported
+sf = LngLat.new_deg(-122.4194, 37.7749)   # LngLat object
+nyc = (-74.0060, 40.7128)                  # Tuple (lng, lat)
+la = [-118.2437, 34.0522]                  # List [lng, lat]
 
-# Calculate distance using Haversine formula
+# Calculate distance
 distance = haversine(sf, nyc)
 print(f"Distance: {distance / 1000:.1f} km")  # ~4,130 km
 ```
@@ -32,9 +33,10 @@ print(f"Distance: {distance / 1000:.1f} km")  # ~4,130 km
 
 **Distance Calculations:**
 - Haversine: Spherical Earth approximation, good for most uses
-- Vincenty: Ellipsoidal Earth model for higher precision  
+- Vincenty: Ellipsoidal Earth model for higher precision
 - Euclidean: Flat plane calculations
 - Batch operations for multiple points
+- NumPy array support for vectorized operations
 
 **Polyline Encoding/Decoding:**
 - Google Polyline Algorithm implementation
@@ -88,13 +90,34 @@ print(f"Reduced from {len(detailed_track)} to {len(simplified)} points")
 ```
 
 **Encode/Decode Polylines:**
-```python  
+```python
 from rapidgeo.polyline import encode, decode
 
-# Compress GPS data for storage/transmission
-points = [LngLat.new_deg(-122.4, 37.7), LngLat.new_deg(-122.3, 37.8)]
+# Compress GPS data - supports multiple coordinate formats
+points = [
+    LngLat.new_deg(-122.4, 37.7),  # LngLat objects
+    (-122.3, 37.8),                 # Tuples
+    [-122.2, 37.9],                 # Lists
+]
 encoded = encode(points, precision=5)
 decoded = decode(encoded, precision=5)
+```
+
+**NumPy Batch Operations:**
+```python
+import numpy as np
+from rapidgeo.numpy import pairwise_haversine, path_length_haversine
+
+# High-performance vectorized operations
+lng = np.array([-122.4, -122.3, -122.2])
+lat = np.array([37.7, 37.8, 37.9])
+
+# Calculate distances between consecutive points
+distances = pairwise_haversine(lng, lat)
+
+# Total path length
+total_distance = path_length_haversine(lng, lat)
+print(f"Total: {total_distance / 1000:.1f} km")
 ```
 
 ## License

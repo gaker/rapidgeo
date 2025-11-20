@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use rapidgeo_distance::LngLat;
 use rapidgeo_polyline::{decode, encode, encode_simplified, simplify_polyline};
 use rapidgeo_simplify::SimplifyMethod;
@@ -38,7 +38,7 @@ fn bench_encode_by_size(c: &mut Criterion) {
         let coords = generate_coordinates(*size);
         group.throughput(Throughput::Elements(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &_size| {
-            b.iter(|| encode(black_box(&coords), black_box(5)).unwrap());
+            b.iter(|| encode(std::hint::black_box(&coords), std::hint::black_box(5)).unwrap());
         });
     }
     group.finish();
@@ -53,7 +53,7 @@ fn bench_decode_by_size(c: &mut Criterion) {
 
         group.throughput(Throughput::Elements(*size as u64));
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &_size| {
-            b.iter(|| decode(black_box(&encoded), black_box(5)).unwrap());
+            b.iter(|| decode(std::hint::black_box(&encoded), std::hint::black_box(5)).unwrap());
         });
     }
     group.finish();
@@ -68,8 +68,9 @@ fn bench_encode_decode_roundtrip(c: &mut Criterion) {
         group.throughput(Throughput::Elements(*size as u64 * 2)); // encode + decode
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &_size| {
             b.iter(|| {
-                let encoded = encode(black_box(&coords), black_box(5)).unwrap();
-                decode(black_box(&encoded), black_box(5)).unwrap()
+                let encoded =
+                    encode(std::hint::black_box(&coords), std::hint::black_box(5)).unwrap();
+                decode(std::hint::black_box(&encoded), std::hint::black_box(5)).unwrap()
             });
         });
     }
@@ -92,10 +93,10 @@ fn bench_simplification(c: &mut Criterion) {
             |b, &_size| {
                 b.iter(|| {
                     encode_simplified(
-                        black_box(&coords),
-                        black_box(100.0),
-                        black_box(SimplifyMethod::GreatCircleMeters),
-                        black_box(5),
+                        std::hint::black_box(&coords),
+                        std::hint::black_box(100.0),
+                        std::hint::black_box(SimplifyMethod::GreatCircleMeters),
+                        std::hint::black_box(5),
                     )
                     .unwrap()
                 });
@@ -109,10 +110,10 @@ fn bench_simplification(c: &mut Criterion) {
             |b, &_size| {
                 b.iter(|| {
                     simplify_polyline(
-                        black_box(&polyline),
-                        black_box(100.0),
-                        black_box(SimplifyMethod::GreatCircleMeters),
-                        black_box(5),
+                        std::hint::black_box(&polyline),
+                        std::hint::black_box(100.0),
+                        std::hint::black_box(SimplifyMethod::GreatCircleMeters),
+                        std::hint::black_box(5),
                     )
                     .unwrap()
                 });
@@ -147,7 +148,9 @@ fn bench_batch_operations(c: &mut Criterion) {
             BenchmarkId::new("encode_batch", batch_size),
             batch_size,
             |b, &_size| {
-                b.iter(|| encode_batch(black_box(&batch), black_box(5)).unwrap());
+                b.iter(|| {
+                    encode_batch(std::hint::black_box(&batch), std::hint::black_box(5)).unwrap()
+                });
             },
         );
 
@@ -156,7 +159,13 @@ fn bench_batch_operations(c: &mut Criterion) {
             BenchmarkId::new("decode_batch", batch_size),
             batch_size,
             |b, &_size| {
-                b.iter(|| decode_batch(black_box(&encoded_batch), black_box(5)).unwrap());
+                b.iter(|| {
+                    decode_batch(
+                        std::hint::black_box(&encoded_batch),
+                        std::hint::black_box(5),
+                    )
+                    .unwrap()
+                });
             },
         );
 
@@ -167,10 +176,10 @@ fn bench_batch_operations(c: &mut Criterion) {
             |b, &_size| {
                 b.iter(|| {
                     encode_simplified_batch(
-                        black_box(&batch),
-                        black_box(100.0),
-                        black_box(SimplifyMethod::GreatCircleMeters),
-                        black_box(5),
+                        std::hint::black_box(&batch),
+                        std::hint::black_box(100.0),
+                        std::hint::black_box(SimplifyMethod::GreatCircleMeters),
+                        std::hint::black_box(5),
                     )
                     .unwrap()
                 });
@@ -187,12 +196,12 @@ fn bench_precision_levels(c: &mut Criterion) {
 
     for precision in [5, 6, 8, 10, 11].iter() {
         group.bench_with_input(BenchmarkId::new("encode", precision), precision, |b, &p| {
-            b.iter(|| encode(black_box(&coords), black_box(p)).unwrap());
+            b.iter(|| encode(std::hint::black_box(&coords), std::hint::black_box(p)).unwrap());
         });
 
         let encoded = encode(&coords, *precision).unwrap();
         group.bench_with_input(BenchmarkId::new("decode", precision), precision, |b, &p| {
-            b.iter(|| decode(black_box(&encoded), black_box(p)).unwrap());
+            b.iter(|| decode(std::hint::black_box(&encoded), std::hint::black_box(p)).unwrap());
         });
     }
     group.finish();
@@ -220,15 +229,27 @@ fn bench_memory_patterns(c: &mut Criterion) {
         .collect::<Vec<_>>();
 
     group.bench_function("sparse_coords", |b| {
-        b.iter(|| encode(black_box(&sparse_coords), black_box(5)).unwrap());
+        b.iter(|| {
+            encode(
+                std::hint::black_box(&sparse_coords),
+                std::hint::black_box(5),
+            )
+            .unwrap()
+        });
     });
 
     group.bench_function("dense_coords", |b| {
-        b.iter(|| encode(black_box(&dense_coords), black_box(5)).unwrap());
+        b.iter(|| encode(std::hint::black_box(&dense_coords), std::hint::black_box(5)).unwrap());
     });
 
     group.bench_function("large_delta_coords", |b| {
-        b.iter(|| encode(black_box(&large_delta_coords), black_box(5)).unwrap());
+        b.iter(|| {
+            encode(
+                std::hint::black_box(&large_delta_coords),
+                std::hint::black_box(5),
+            )
+            .unwrap()
+        });
     });
 
     group.finish();

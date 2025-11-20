@@ -394,6 +394,17 @@ mod tests {
     }
 
     #[test]
+    fn test_decode_batch_strs_parallel() {
+        let polyline_strs: Vec<&str> = (0..150).map(|_| "_p~iF~ps|U_ulLnnqC").collect();
+
+        let decoded = decode_batch_strs(&polyline_strs, 5).unwrap();
+        assert_eq!(decoded.len(), 150);
+        for coords in decoded {
+            assert_eq!(coords.len(), 2);
+        }
+    }
+
+    #[test]
     fn test_large_batch_parallel() {
         let coords = vec![
             LngLat::new_deg(-120.2, 38.5),
@@ -525,6 +536,30 @@ mod tests {
             assert!(!polyline.is_empty());
             let decoded = decode(polyline, 5).unwrap();
             assert!(decoded.len() >= 2); // At least start and end
+        }
+    }
+
+    #[test]
+    fn test_simplify_polylines_batch_parallel() {
+        use rapidgeo_simplify::SimplifyMethod;
+
+        let coords = vec![
+            LngLat::new_deg(-122.0, 37.0),
+            LngLat::new_deg(-122.1, 37.1),
+            LngLat::new_deg(-122.2, 37.0),
+        ];
+
+        let polylines: Vec<String> = (0..60).map(|_| encode(&coords, 5).unwrap()).collect();
+
+        let simplified =
+            simplify_polylines_batch(&polylines, 1000.0, SimplifyMethod::GreatCircleMeters, 5)
+                .unwrap();
+        assert_eq!(simplified.len(), 60);
+
+        for polyline in &simplified {
+            assert!(!polyline.is_empty());
+            let decoded = decode(polyline, 5).unwrap();
+            assert!(decoded.len() >= 2);
         }
     }
 
