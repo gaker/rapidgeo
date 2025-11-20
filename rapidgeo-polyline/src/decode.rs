@@ -305,4 +305,158 @@ mod tests {
         let valid = "_p~iF~ps|U"; // Should decode to reasonable coordinates
         assert!(decode(valid, 5).is_ok());
     }
+
+    #[test]
+    fn test_validate_nan_longitude() {
+        let coord = LngLat {
+            lng_deg: f64::NAN,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_nan_latitude() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: f64::NAN,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_infinity_longitude() {
+        let coord = LngLat {
+            lng_deg: f64::INFINITY,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_neg_infinity_longitude() {
+        let coord = LngLat {
+            lng_deg: f64::NEG_INFINITY,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_infinity_latitude() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: f64::INFINITY,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_neg_infinity_latitude() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: f64::NEG_INFINITY,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_longitude_below_lower_bound() {
+        let coord = LngLat {
+            lng_deg: -180.2,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_longitude_at_lower_bound() {
+        let coord = LngLat {
+            lng_deg: -180.1,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_longitude_at_upper_bound() {
+        let coord = LngLat {
+            lng_deg: 180.1,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_longitude_above_upper_bound() {
+        let coord = LngLat {
+            lng_deg: 180.2,
+            lat_deg: 0.0,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_latitude_below_lower_bound() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: -90.2,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_latitude_at_lower_bound() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: -90.1,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_latitude_at_upper_bound() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: 90.1,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_latitude_above_upper_bound() {
+        let coord = LngLat {
+            lng_deg: 0.0,
+            lat_deg: 90.2,
+        };
+        let result = validate_decoded_coordinate(&coord);
+        assert!(matches!(result, Err(PolylineError::InvalidCoordinate(..))));
+    }
+
+    #[test]
+    fn test_validate_valid_coordinates() {
+        let coords = vec![
+            LngLat::new_deg(0.0, 0.0),
+            LngLat::new_deg(-122.4194, 37.7749),
+            LngLat::new_deg(180.0, 90.0),
+            LngLat::new_deg(-180.0, -90.0),
+        ];
+
+        for coord in coords {
+            assert!(validate_decoded_coordinate(&coord).is_ok());
+        }
+    }
 }
