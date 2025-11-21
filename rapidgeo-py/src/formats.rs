@@ -144,7 +144,11 @@ pub fn python_to_coordinate_input(coords: &Bound<'_, PyAny>) -> PyResult<Coordin
     }
 
     // Fall back to Python list processing
-    let py_list = coords.cast::<PyList>()?;
+    let py_list = coords.cast::<PyList>().map_err(|_| {
+        pyo3::exceptions::PyTypeError::new_err(
+            "Expected coordinates as list, tuple, or NumPy array",
+        )
+    })?;
 
     if py_list.len() == 0 {
         return Ok(CoordinateInput::Tuples(vec![]));
@@ -163,6 +167,65 @@ pub fn python_to_coordinate_input(coords: &Bound<'_, PyAny>) -> PyResult<Coordin
     }
 
     parse_tuple_list(py_list)
+}
+
+pub fn process_path_to_lnglat(
+    py: Python,
+    path_item: &Bound<'_, PyAny>,
+) -> PyResult<Vec<rapidgeo_distance::LngLat>> {
+    if is_numpy_available(py) {
+        if let Ok(array) = path_item.cast::<PyArray2<f64>>() {
+            let readonly = array.readonly();
+            let shape = array.shape();
+
+            if shape[1] != 2 {
+                return Err(pyo3::exceptions::PyValueError::new_err(
+                    "NumPy array must have shape (N, 2) for coordinate pairs",
+                ));
+            }
+
+            let slice = readonly.as_slice()?;
+            return Ok(slice
+                .chunks_exact(2)
+                .map(|chunk| rapidgeo_distance::LngLat::new_deg(chunk[0], chunk[1]))
+                .collect());
+        }
+
+        if let Ok(array) = path_item.cast::<PyArray1<f64>>() {
+            let readonly = array.readonly();
+            let slice = readonly.as_slice()?;
+            return Ok(slice
+                .chunks_exact(2)
+                .map(|chunk| rapidgeo_distance::LngLat::new_deg(chunk[0], chunk[1]))
+                .collect());
+        }
+
+        if let Ok(array) = path_item.cast::<PyArrayDyn<f64>>() {
+            let readonly = array.readonly();
+            let slice = readonly.as_slice()?;
+            return Ok(slice
+                .chunks_exact(2)
+                .map(|chunk| rapidgeo_distance::LngLat::new_deg(chunk[0], chunk[1]))
+                .collect());
+        }
+    }
+
+    if let Ok(path_list) = path_item.cast::<PyList>() {
+        if path_list.len() > 0 {
+            if let Ok(_first_lnglat) = path_list.get_item(0)?.extract::<LngLat>() {
+                return path_list
+                    .iter()
+                    .map(|item| {
+                        let pt: LngLat = item.extract()?;
+                        Ok(pt.into())
+                    })
+                    .collect::<PyResult<Vec<_>>>();
+            }
+        }
+    }
+
+    let input = python_to_coordinate_input(path_item)?;
+    Ok(coords_to_lnglat_vec(&input))
 }
 
 /// Parses a flat array of coordinates in the format ``[lng1, lat1, lng2, lat2, ...]``.

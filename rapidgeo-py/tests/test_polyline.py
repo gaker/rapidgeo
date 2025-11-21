@@ -55,14 +55,18 @@ def test_basic_encode_decode(sample_coords):
 
 
 def test_encode_simplified(sample_coords):
-    encoded = encode_simplified(sample_coords, tolerance_m=1000.0, method="great_circle", precision=5)
+    encoded = encode_simplified(
+        sample_coords, tolerance_m=1000.0, method="great_circle", precision=5
+    )
     assert isinstance(encoded, str)
     assert len(encoded) > 0
 
 
 def test_simplify_polyline(sample_coords):
     encoded = encode(sample_coords, 5)
-    simplified = simplify_polyline(encoded, tolerance_m=1000.0, method="great_circle", precision=5)
+    simplified = simplify_polyline(
+        encoded, tolerance_m=1000.0, method="great_circle", precision=5
+    )
     assert isinstance(simplified, str)
 
 
@@ -90,7 +94,9 @@ def test_encode_batch_lists(sample_coords_lists):
     assert all(isinstance(p, str) for p in encoded)
 
 
-def test_encode_batch_different_batches_same_result(sample_coords, sample_coords_tuples, sample_coords_lists):
+def test_encode_batch_different_batches_same_result(
+    sample_coords, sample_coords_tuples, sample_coords_lists
+):
     # Each batch format should produce the same encoding
     encoded_lnglat = encode_batch([sample_coords], 5)
     encoded_tuples = encode_batch([sample_coords_tuples], 5)
@@ -104,7 +110,9 @@ def test_encode_batch_different_batches_same_result(sample_coords, sample_coords
 
 def test_encode_simplified_batch_lnglat_objects(sample_coords):
     coord_batches = [sample_coords, sample_coords[:2]]
-    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+    encoded = encode_simplified_batch(
+        coord_batches, tolerance_m=5.0, method="great_circle", precision=5
+    )
 
     assert len(encoded) == 2
     assert all(isinstance(p, str) for p in encoded)
@@ -112,7 +120,9 @@ def test_encode_simplified_batch_lnglat_objects(sample_coords):
 
 def test_encode_simplified_batch_tuples(sample_coords_tuples):
     coord_batches = [sample_coords_tuples, sample_coords_tuples[:2]]
-    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+    encoded = encode_simplified_batch(
+        coord_batches, tolerance_m=5.0, method="great_circle", precision=5
+    )
 
     assert len(encoded) == 2
     assert all(isinstance(p, str) for p in encoded)
@@ -120,7 +130,9 @@ def test_encode_simplified_batch_tuples(sample_coords_tuples):
 
 def test_encode_simplified_batch_lists(sample_coords_lists):
     coord_batches = [sample_coords_lists, sample_coords_lists[:2]]
-    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+    encoded = encode_simplified_batch(
+        coord_batches, tolerance_m=5.0, method="great_circle", precision=5
+    )
 
     assert len(encoded) == 2
     assert all(isinstance(p, str) for p in encoded)
@@ -134,7 +146,9 @@ def test_encode_simplified_batch_tuple_coordinates():
         (-126.453, 43.252),
     ]
     coord_batches = [coords_with_tuples, coords_with_tuples[:2]]
-    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+    encoded = encode_simplified_batch(
+        coord_batches, tolerance_m=5.0, method="great_circle", precision=5
+    )
 
     assert len(encoded) == 2
     assert all(isinstance(p, str) for p in encoded)
@@ -142,19 +156,23 @@ def test_encode_simplified_batch_tuple_coordinates():
 
 @pytest.mark.skipif(
     not pytest.importorskip("numpy", reason="numpy not installed"),
-    reason="numpy not available"
+    reason="numpy not available",
 )
 def test_encode_simplified_batch_numpy_array():
     import numpy as np
 
-    coords_np = np.array([
-        [-120.2, 38.5],
-        [-120.95, 40.7],
-        [-126.453, 43.252],
-    ])
+    coords_np = np.array(
+        [
+            [-120.2, 38.5],
+            [-120.95, 40.7],
+            [-126.453, 43.252],
+        ]
+    )
 
     coord_batches = [coords_np, coords_np[:2]]
-    encoded = encode_simplified_batch(coord_batches, tolerance_m=5.0, method="great_circle", precision=5)
+    encoded = encode_simplified_batch(
+        coord_batches, tolerance_m=5.0, method="great_circle", precision=5
+    )
 
     assert len(encoded) == 2
     assert all(isinstance(p, str) for p in encoded)
@@ -162,16 +180,18 @@ def test_encode_simplified_batch_numpy_array():
 
 @pytest.mark.skipif(
     not pytest.importorskip("numpy", reason="numpy not installed"),
-    reason="numpy not available"
+    reason="numpy not available",
 )
 def test_encode_batch_numpy_array():
     import numpy as np
 
-    coords_np = np.array([
-        [-120.2, 38.5],
-        [-120.95, 40.7],
-        [-126.453, 43.252],
-    ])
+    coords_np = np.array(
+        [
+            [-120.2, 38.5],
+            [-120.95, 40.7],
+            [-126.453, 43.252],
+        ]
+    )
 
     coord_batches = [coords_np, coords_np[:2]]
     encoded = encode_batch(coord_batches, 5)
@@ -195,10 +215,7 @@ def test_encode_simplified_batch_methods(sample_coords):
 
     for method in ["great_circle", "planar", "euclidean"]:
         encoded = encode_simplified_batch(
-            coord_batches,
-            tolerance_m=5.0,
-            method=method,
-            precision=5
+            coord_batches, tolerance_m=5.0, method=method, precision=5
         )
         assert len(encoded) == 1
         assert isinstance(encoded[0], str)

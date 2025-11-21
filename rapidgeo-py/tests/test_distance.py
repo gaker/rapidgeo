@@ -18,7 +18,11 @@ from rapidgeo.distance.euclid import (
     point_to_segment,
     point_to_segment_squared,
 )
-from rapidgeo.distance.batch import pairwise_haversine, path_length_haversine, path_length_haversine_batch
+from rapidgeo.distance.batch import (
+    pairwise_haversine,
+    path_length_haversine,
+    path_length_haversine_batch,
+)
 
 
 class TestLngLat:
@@ -379,6 +383,66 @@ class TestBatchOperations:
         assert len(distances) == 100
         assert all(isinstance(d, float) for d in distances)
         assert all(d > 0 for d in distances)
+
+    def test_path_length_haversine_batch_numpy(self):
+        """Test batch with NumPy arrays"""
+        try:
+            import numpy as np
+        except ImportError:
+            pytest.skip("NumPy not available")
+
+        path1 = np.array([[-120.2, 38.5], [-120.95, 40.7], [-126.453, 43.252]])
+        path2 = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0]])
+
+        distances = path_length_haversine_batch([path1, path2])
+
+        assert len(distances) == 2
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
+
+    def test_path_length_haversine_batch_mixed_numpy_and_lists(self):
+        """Test batch with mixed NumPy arrays and lists"""
+        try:
+            import numpy as np
+        except ImportError:
+            pytest.skip("NumPy not available")
+
+        path1 = np.array([[-120.2, 38.5], [-120.95, 40.7]])
+        path2 = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0)]
+        path3 = [LngLat(-74.0, 40.0), LngLat(-73.0, 41.0)]
+
+        distances = path_length_haversine_batch([path1, path2, path3])
+
+        assert len(distances) == 3
+        assert all(isinstance(d, float) for d in distances)
+        assert all(d > 0 for d in distances)
+
+    def test_path_length_haversine_batch_spark_arrow_style(self):
+        """Test batch with Spark/Arrow-style NumPy arrays (contiguous C-order)"""
+        try:
+            import numpy as np
+        except ImportError:
+            pytest.skip("NumPy not available")
+
+        path1 = np.ascontiguousarray(
+            [[-122.4194, 37.7749], [-118.2437, 34.0522], [-117.1611, 32.7157]]
+        )
+        path2 = np.ascontiguousarray(
+            [[2.3522, 48.8566], [4.8357, 45.7640], [5.3698, 43.2965]]
+        )
+        path3 = np.ascontiguousarray([[139.6917, 35.6895], [135.5023, 34.6937]])
+
+        assert path1.flags["C_CONTIGUOUS"]
+        assert path2.flags["C_CONTIGUOUS"]
+        assert path3.flags["C_CONTIGUOUS"]
+
+        distances = path_length_haversine_batch([path1, path2, path3])
+
+        assert len(distances) == 3
+        assert all(isinstance(d, float) for d in distances)
+        assert distances[0] > 500000
+        assert distances[1] > 500000
+        assert distances[2] > 350000
 
 
 class TestDistanceEdgeCases:

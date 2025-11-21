@@ -1,8 +1,10 @@
 #![allow(non_local_definitions)]
 
+use numpy::{PyArray2, PyArrayDyn, PyArrayMethods};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use rapidgeo_distance::{geodesic, LngLat as CoreLngLat};
+use rayon::prelude::*;
 use std::sync::OnceLock;
 
 /// Cached numpy availability check to avoid repeated import overhead
@@ -526,42 +528,48 @@ pub mod batch_mod {
 
     #[pyfunction]
     #[pyo3(signature = (paths))]
-    pub fn path_length_haversine_batch(
-        py: Python,
-        paths: &Bound<'_, PyList>,
-    ) -> PyResult<Vec<f64>> {
-        use crate::formats::python_to_coordinate_input;
-        use pyo3::types::PyList;
+    pub fn path_length_haversine_batch(py: Python, paths: &Bound<'_, PyAny>) -> PyResult<Vec<f64>> {
+        use crate::formats::process_path_to_lnglat;
 
-        let all_paths: Vec<Vec<CoreLngLat>> = paths
-            .iter()
-            .map(|path_item| {
-                let path_list = path_item.cast::<PyList>()?;
+        let all_paths: Vec<Vec<CoreLngLat>> = if is_numpy_available(py) {
+            // Try object array first (array of arrays)
+            if let Ok(array) = paths.cast::<PyArrayDyn<Py<PyAny>>>() {
+                let readonly = array.readonly();
+                let slice = readonly.as_slice()?;
+                let n = slice.len();
+                let ptr = slice.as_ptr();
 
-                // Try to extract as LngLat objects first, fall back to coordinate input conversion
-                if path_list.len() > 0 {
-                    if let Ok(_first_lnglat) = path_list.get_item(0)?.extract::<LngLat>() {
-                        // Path contains LngLat objects
-                        return path_list
-                            .iter()
-                            .map(|item| {
-                                let pt: LngLat = item.extract()?;
-                                Ok(pt.into())
-                            })
-                            .collect::<PyResult<Vec<_>>>();
-                    }
-                }
-
-                // Not LngLat objects, use format detection
-                let input = python_to_coordinate_input(&path_item)?;
-                let core_coords = rapidgeo_distance::formats::coords_to_lnglat_vec(&input);
-                Ok(core_coords)
-            })
-            .collect::<PyResult<Vec<_>>>()?;
+                (0..n)
+                    .map(|i| {
+                        let obj = unsafe { &*ptr.add(i) };
+                        process_path_to_lnglat(py, obj.bind(py))
+                    })
+                    .collect::<PyResult<Vec<_>>>()?
+            // Try 2D f64 array (single path)
+            } else if let Ok(_array) = paths.cast::<PyArray2<f64>>() {
+                vec![process_path_to_lnglat(py, paths)?]
+            } else if let Ok(list) = paths.cast::<PyList>() {
+                list.iter()
+                    .map(|item| process_path_to_lnglat(py, &item))
+                    .collect::<PyResult<Vec<_>>>()?
+            } else {
+                return Err(pyo3::exceptions::PyTypeError::new_err(
+                    "paths must be a list or NumPy array",
+                ));
+            }
+        } else if let Ok(list) = paths.cast::<PyList>() {
+            list.iter()
+                .map(|item| process_path_to_lnglat(py, &item))
+                .collect::<PyResult<Vec<_>>>()?
+        } else {
+            return Err(pyo3::exceptions::PyTypeError::new_err(
+                "paths must be a list",
+            ));
+        };
 
         Ok(py.detach(move || {
             all_paths
-                .into_iter()
+                .into_par_iter()
                 .map(|core_pts| {
                     core_pts
                         .windows(2)

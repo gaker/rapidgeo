@@ -1,11 +1,19 @@
 use crate::distance::LngLat;
-use crate::formats::python_to_coordinate_input;
+use crate::formats::process_path_to_lnglat;
+use numpy::{PyArray2, PyArrayDyn, PyArrayMethods};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
-use rapidgeo_distance::formats::coords_to_lnglat_vec;
 use rapidgeo_polyline::{decode, encode, encode_simplified, simplify_polyline};
 use rapidgeo_simplify::SimplifyMethod;
+
+use std::sync::OnceLock;
+
+static NUMPY_AVAILABLE: OnceLock<bool> = OnceLock::new();
+
+fn is_numpy_available(py: Python) -> bool {
+    *NUMPY_AVAILABLE.get_or_init(|| py.import("numpy").is_ok())
+}
 
 #[cfg(feature = "batch")]
 use rapidgeo_polyline::batch::{decode_batch, encode_batch, encode_simplified_batch};
@@ -217,35 +225,39 @@ fn py_simplify_polyline(
 #[pyfunction]
 #[pyo3(signature = (coordinates_list, precision = 5))]
 fn py_encode_batch(coordinates_list: &Bound<'_, PyAny>, precision: u8) -> PyResult<Vec<String>> {
-    if let Ok(lnglat_list) = coordinates_list.extract::<Vec<Vec<LngLat>>>() {
-        let coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = lnglat_list
-            .iter()
-            .map(|coords| {
-                coords
-                    .iter()
-                    .map(|c| rapidgeo_distance::LngLat::new_deg(c.lng(), c.lat()))
-                    .collect()
-            })
-            .collect();
+    let py = coordinates_list.py();
 
-        return encode_batch(&coord_batches, precision)
-            .map_err(|e| PyValueError::new_err(format!("Batch encoding error: {}", e)));
-    }
+    let coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = if is_numpy_available(py) {
+        if let Ok(array) = coordinates_list.cast::<PyArrayDyn<Py<PyAny>>>() {
+            let readonly = array.readonly();
+            let slice = readonly.as_slice()?;
+            let n = slice.len();
+            let ptr = slice.as_ptr();
 
-    let py_list = if let Ok(list) = coordinates_list.cast::<PyList>() {
-        list.clone()
+            (0..n)
+                .map(|i| {
+                    let obj = unsafe { &*ptr.add(i) };
+                    process_path_to_lnglat(py, obj.bind(py))
+                })
+                .collect::<PyResult<Vec<_>>>()?
+        } else if let Ok(_array) = coordinates_list.cast::<PyArray2<f64>>() {
+            vec![process_path_to_lnglat(py, coordinates_list)?]
+        } else if let Ok(list) = coordinates_list.cast::<PyList>() {
+            list.iter()
+                .map(|item| process_path_to_lnglat(py, &item))
+                .collect::<PyResult<Vec<_>>>()?
+        } else {
+            return Err(PyValueError::new_err(
+                "coordinates_list must be a list or NumPy array",
+            ));
+        }
+    } else if let Ok(list) = coordinates_list.cast::<PyList>() {
+        list.iter()
+            .map(|item| process_path_to_lnglat(py, &item))
+            .collect::<PyResult<Vec<_>>>()?
     } else {
-        let list_obj = coordinates_list.call_method0("tolist")?;
-        list_obj.cast::<PyList>()?.clone()
+        return Err(PyValueError::new_err("coordinates_list must be a list"));
     };
-
-    let mut coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = Vec::with_capacity(py_list.len());
-
-    for item in py_list.iter() {
-        let input = python_to_coordinate_input(&item)?;
-        let coords = coords_to_lnglat_vec(&input);
-        coord_batches.push(coords);
-    }
 
     encode_batch(&coord_batches, precision)
         .map_err(|e| PyValueError::new_err(format!("Batch encoding error: {}", e)))
@@ -340,47 +352,39 @@ fn py_encode_simplified_batch(
     method: &str,
     precision: u8,
 ) -> PyResult<Vec<String>> {
-    if let Ok(lnglat_list) = coordinates_list.extract::<Vec<Vec<LngLat>>>() {
-        let coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = lnglat_list
-            .iter()
-            .map(|coords| {
-                coords
-                    .iter()
-                    .map(|c| rapidgeo_distance::LngLat::new_deg(c.lng(), c.lat()))
-                    .collect()
-            })
-            .collect();
+    let py = coordinates_list.py();
 
-        let simplify_method = match method {
-            "great_circle" => SimplifyMethod::GreatCircleMeters,
-            "planar" => SimplifyMethod::PlanarMeters,
-            "euclidean" => SimplifyMethod::EuclidRaw,
-            _ => {
-                return Err(PyValueError::new_err(format!(
-                    "Unknown simplification method: {}",
-                    method
-                )))
-            }
-        };
+    let coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = if is_numpy_available(py) {
+        if let Ok(array) = coordinates_list.cast::<PyArrayDyn<Py<PyAny>>>() {
+            let readonly = array.readonly();
+            let slice = readonly.as_slice()?;
+            let n = slice.len();
+            let ptr = slice.as_ptr();
 
-        return encode_simplified_batch(&coord_batches, tolerance_m, simplify_method, precision)
-            .map_err(|e| PyValueError::new_err(format!("Batch simplified encoding error: {}", e)));
-    }
-
-    let py_list = if let Ok(list) = coordinates_list.cast::<PyList>() {
-        list.clone()
+            (0..n)
+                .map(|i| {
+                    let obj = unsafe { &*ptr.add(i) };
+                    process_path_to_lnglat(py, obj.bind(py))
+                })
+                .collect::<PyResult<Vec<_>>>()?
+        } else if let Ok(_array) = coordinates_list.cast::<PyArray2<f64>>() {
+            vec![process_path_to_lnglat(py, coordinates_list)?]
+        } else if let Ok(list) = coordinates_list.cast::<PyList>() {
+            list.iter()
+                .map(|item| process_path_to_lnglat(py, &item))
+                .collect::<PyResult<Vec<_>>>()?
+        } else {
+            return Err(PyValueError::new_err(
+                "coordinates_list must be a list or NumPy array",
+            ));
+        }
+    } else if let Ok(list) = coordinates_list.cast::<PyList>() {
+        list.iter()
+            .map(|item| process_path_to_lnglat(py, &item))
+            .collect::<PyResult<Vec<_>>>()?
     } else {
-        let list_obj = coordinates_list.call_method0("tolist")?;
-        list_obj.cast::<PyList>()?.clone()
+        return Err(PyValueError::new_err("coordinates_list must be a list"));
     };
-
-    let mut coord_batches: Vec<Vec<rapidgeo_distance::LngLat>> = Vec::with_capacity(py_list.len());
-
-    for item in py_list.iter() {
-        let input = python_to_coordinate_input(&item)?;
-        let coords = coords_to_lnglat_vec(&input);
-        coord_batches.push(coords);
-    }
 
     let simplify_method = match method {
         "great_circle" => SimplifyMethod::GreatCircleMeters,

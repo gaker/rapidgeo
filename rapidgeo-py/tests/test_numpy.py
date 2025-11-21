@@ -108,14 +108,21 @@ def test_numpy_distances_to_point_batch():
 def test_numpy_real_world_gps_track():
     # GPS track moving roughly northeast through San Francisco
     # Points are 0.001 degrees apart in both directions
-    lng = numpy.array([
-        -122.4194, -122.4184, -122.4174, -122.4164,
-        -122.4154, -122.4144, -122.4134, -122.4124
-    ])
-    lat = numpy.array([
-        37.7749, 37.7759, 37.7769, 37.7779,
-        37.7789, 37.7799, 37.7809, 37.7819
-    ])
+    lng = numpy.array(
+        [
+            -122.4194,
+            -122.4184,
+            -122.4174,
+            -122.4164,
+            -122.4154,
+            -122.4144,
+            -122.4134,
+            -122.4124,
+        ]
+    )
+    lat = numpy.array(
+        [37.7749, 37.7759, 37.7769, 37.7779, 37.7789, 37.7799, 37.7809, 37.7819]
+    )
 
     distances = pairwise_haversine(lng, lat)
     total = path_length_haversine(lng, lat)
